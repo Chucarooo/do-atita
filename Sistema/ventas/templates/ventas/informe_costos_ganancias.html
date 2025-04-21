@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Informe de Costos y Ganancias</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Filtro de fechas -->
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="fecha_desde">Fecha Desde:</label>
+                                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" value="{{ fecha_desde|date:'Y-m-d' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="fecha_hasta">Fecha Hasta:</label>
+                                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" value="{{ fecha_hasta|date:'Y-m-d' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Resumen de Ingresos y Costos -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h6 class="card-title text-success">Ingresos Totales</h6>
+                                    <h3 class="mb-0">${{ ventas_periodo.total|floatformat:2 }}</h3>
+                                    <small class="text-muted">{{ ventas_periodo.cantidad }} ventas</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-danger">
+                                <div class="card-body">
+                                    <h6 class="card-title text-danger">Costos Totales</h6>
+                                    <h3 class="mb-0">${{ costos_productos.costo_total|floatformat:2 }}</h3>
+                                    <small class="text-muted">Costos de productos vendidos</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-warning">
+                                <div class="card-body">
+                                    <h6 class="card-title text-warning">Compras Totales</h6>
+                                    <h3 class="mb-0">${{ compras_periodo.total|floatformat:2 }}</h3>
+                                    <small class="text-muted">{{ compras_periodo.cantidad }} compras</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ganancias -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">Ganancia Bruta</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ ganancia_bruta_porcentaje }}%">
+                                            {{ ganancia_bruta_porcentaje|floatformat:1 }}%
+                                        </div>
+                                    </div>
+                                    <h3 class="mb-0">${{ ganancia_bruta|floatformat:2 }}</h3>
+                                    <small class="text-muted">Ventas - Costos de productos</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">Ganancia Neta</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ ganancia_neta_porcentaje }}%">
+                                            {{ ganancia_neta_porcentaje|floatformat:1 }}%
+                                        </div>
+                                    </div>
+                                    <h3 class="mb-0">${{ ganancia_neta|floatformat:2 }}</h3>
+                                    <small class="text-muted">Ganancia Bruta - Compras</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: border-box;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+}
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+}
+.progress {
+    height: 1.5rem;
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,148 @@
+PASOS DEL VIDEO:
+
+0. Ejecutar "pip install django-humanize". En settings.py en "INSTALLED APPS"
+agregar:  'django.contrib.humanize',
+Ejecutar "pip install django-weasyprint"
+
+1. En urls.py agregar:
+
+path('add_venta/',views.add_ventas.as_view(), name='AddVenta'),
+path('export/', views.export_pdf_view, name="ExportPDF" ),
+path('export/<id>/<iva>', views.export_pdf_view, name="ExportPDF" ),
+
+2. En models.py
+
+from django.forms import model_to_dict
+
+""""""""
+class Egreso(models.Model):
+    fecha_pedido = models.DateField(max_length=255)
+    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL , null=True , related_name='clientee')
+    total = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    pagado = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    comentarios = models.TextField(blank=True, null=True)
+    created = models.DateTimeField(auto_now=True)
+    ticket = models.BooleanField(default=True)
+    desglosar = models.BooleanField(default=True)
+    updated = models.DateTimeField(auto_now_add=True , null=True)
+
+    class Meta:
+        verbose_name='egreso'
+        verbose_name_plural = 'egresos'
+        order_with_respect_to = 'fecha_pedido'
+    
+    def __str__(self):
+        return str(self.id)
+   
+
+class ProductosEgreso(models.Model):
+    egreso = models.ForeignKey(Egreso, on_delete=models.CASCADE)
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    cantidad = models.DecimalField(max_digits=20, decimal_places=2 , null=False)
+    precio = models.DecimalField(max_digits=20, decimal_places=2 , null=False , default=0)
+    subtotal = models.DecimalField(max_digits=20, decimal_places=2 , null=False , default=0)
+    iva = models.DecimalField(max_digits=20, decimal_places=2 , null=False , default=0)
+    total = models.DecimalField(max_digits=20, decimal_places=2 , null=False , default=0)
+    created = models.DateTimeField(auto_now_add=True)
+    entregado = models.BooleanField(default=True)
+    devolucion = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name='producto egreso'
+        verbose_name_plural = 'productos egreso'
+        order_with_respect_to = 'created'
+    
+    def __str__(self):
+        return self.producto
+    
+    def toJSON(self):
+        item = model_to_dict(self, exclude=['created'])
+        return item
+"""""""""""""""""""""""""""
+Ejecutar 
+python manage.py makemigrations
+python manage.py migrate
+
+3. En views.py agregar:
+
+from .models import Cliente, Egreso, Producto, Egreso, ProductosEgreso
+from django.views.generic import ListView
+from django.http import JsonResponse, HttpResponse
+from weasyprint.text.fonts import FontConfiguration
+from django.template.loader import get_template
+from weasyprint import HTML, CSS
+from django.conf import settings
+import os
+
+
+class add_ventas(ListView):
+    template_name = 'add_ventas.html'
+    model = Egreso
+
+    def dispatch(self,request,*args,**kwargs):
+        return super().dispatch(request, *args, **kwargs)
+    """
+    def get_queryset(self):
+        return ProductosPreventivo.objects.filter(
+            preventivo=self.kwargs['id']
+        )
+    """
+    def post(self, request,*ars, **kwargs):
+        data = {}
+        try:
+            action = request.POST['action']
+            if action == 'autocomplete':
+                data = []
+                for i in Producto.objects.filter(descripcion__icontains=request.POST["term"])[0:10]:
+                    item = i.toJSON()
+                    item['value'] = i.descripcion
+                    data.append(item)
+            else:
+                data['error'] = "Ha ocurrido un error"
+        except Exception as e:
+            data['error'] = str(e)
+
+        return JsonResponse(data,safe=False)
+
+
+def export_pdf_view(request, id, iva):
+    #print(id)
+    template = get_template("ticket.html")
+    #print(id)
+    subtotal = 0 
+    iva_suma = 0 
+
+    venta = Egreso.objects.get(pk=float(id))
+    datos = ProductosEgreso.objects.filter(egreso=venta)
+    for i in datos:
+        subtotal = subtotal + float(i.subtotal)
+        iva_suma = iva_suma + float(i.iva)
+
+    empresa = "Mi empresa S.A. De C.V"
+    context ={
+        'num_ticket': id,
+        'iva': iva,
+        'fecha': venta.fecha_pedido,
+        'cliente': venta.cliente.nombre,
+        'items': datos, 
+        'total': venta.total, 
+        'empresa': empresa,
+        'comentarios': venta.comentarios,
+        'subtotal': subtotal,
+        'iva_suma': iva_suma,
+    }
+    html_template = template.render(context)
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = "inline; ticket.pdf"
+    css_url = os.path.join(settings.BASE_DIR,'index\static\index\css/bootstrap.min.css')
+    #HTML(string=html_template).write_pdf(target="ticket.pdf", stylesheets=[CSS(css_url)])
+   
+    font_config = FontConfiguration()
+    HTML(string=html_template, base_url=request.build_absolute_uri()).write_pdf(target=response, font_config=font_config,stylesheets=[CSS(css_url)])
+
+    return response
+
+
+4. Copiar el archivo "add_ventas.html" y el archivo "ticket.html" en la carpeta templates. 
+
+6. Realizar prueba de funcionamiento. 

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">{{ titulo }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Por favor, corrija los siguientes errores:</strong>
+                            {{ form.errors }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.Producto.id_for_label }}">Producto:</label>
+                                    {{ form.Producto }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.Tipo.id_for_label }}">Tipo de Movimiento:</label>
+                                    {{ form.Tipo }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.Cantidad.id_for_label }}">Cantidad:</label>
+                                    {{ form.Cantidad }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.OrigenMovimiento.id_for_label }}">Origen del Movimiento:</label>
+                                    {{ form.OrigenMovimiento }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="{{ form.Observaciones.id_for_label }}">Observaciones:</label>
+                            {{ form.Observaciones }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Registrar Movimiento</button>
+                            <a href="{% url 'historial_movimientos' %}" class="btn btn-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Inicializar Select2
+    $('.select2').select2({
+        theme: 'bootstrap4'
+    });
+    
+    // Actualizar stock actual cuando se selecciona un producto
+    $('#{{ form.Producto.id_for_label }}').change(function() {
+        var productoId = $(this).val();
+        if (productoId) {
+            $.get('/ventas/get_producto/' + productoId + '/', function(data) {
+                if (data.success) {
+                    var stockActual = data.producto.Cantidad;
+                    $('#stock-actual').text('Stock actual: ' + stockActual);
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %} 

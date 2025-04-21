@@ -1,0 +1,462 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="fas fa-shopping-cart"></i> Registrar Compra</h3>
+                <a href="{% url 'lista_compras' %}" class="btn btn-info">
+                    <i class="fas fa-list"></i> Ver Lista de Compras
+                </a>
+            </div>
+        </div>
+        <div class="card-body bg-white">
+            <form method="POST" id="compraForm">
+                {% csrf_token %}
+                <div class="row">
+                    <!-- Columna izquierda: Búsqueda y lista de productos -->
+                    <div class="col-md-8">
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3 bg-primary text-white">
+                                <h6 class="m-0 font-weight-bold">
+                                    <i class="fas fa-search mr-2"></i>Buscar Productos
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="input-group mb-3">
+                                    <input type="text" id="buscarProducto" class="form-control" placeholder="Buscar producto...">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Encabezados de columnas -->
+                                <div class="row mb-2 fw-bold border-bottom pb-2">
+                                    <div class="col-4">Nombre</div>
+                                    <div class="col-2 text-center">Stock</div>
+                                    <div class="col-3 text-end">Precio Costo</div>
+                                    <div class="col-3 text-end">Acciones</div>
+                                </div>
+                                
+                                <div class="list-group" id="lista-productos" style="max-height: 300px; overflow-y: auto;">
+                                    {% for producto in productos %}
+                                    <div class="list-group-item py-2 producto-item">
+                                        <div class="row align-items-center">
+                                            <div class="col-4">{{ producto.Nombre }}</div>
+                                            <div class="col-2 text-center">{{ producto.Cantidad }}</div>
+                                            <div class="col-3 text-end">${{ producto.PrecioCosto }}</div>
+                                            <div class="col-3 text-end">
+                                                <button type="button" class="btn btn-success btn-sm btn-agregar" 
+                                                        data-id="{{ producto.id }}" 
+                                                        data-nombre="{{ producto.Nombre }}" 
+                                                        data-precio="{{ producto.PrecioCosto }}"
+                                                        data-stock="{{ producto.Cantidad }}">
+                                                    <i class="fas fa-plus-circle"></i> Agregar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna derecha: Información de la compra -->
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Información Básica</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="proveedor" class="form-label">Proveedor:</label>
+                                    <select id="proveedor" name="proveedor" class="form-control" required>
+                                        <option value="">Seleccione un proveedor</option>
+                                        {% for proveedor in proveedores %}
+                                            <option value="{{ proveedor.id }}">{{ proveedor.RazonSocial }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="fecha" class="form-label">Fecha de Compra:</label>
+                                    <input type="date" id="fecha" name="fecha" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-light mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Detalles de la Compra</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="tabla-detalles">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Unitario</th>
+                                        <th>Subtotal</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0">Total: $<span id="total">0.00</span></h4>
+                            <div>
+                                <button type="button" class="btn btn-primary" onclick="mostrarModalPago()">
+                                    <i class="fas fa-dollar-sign"></i> Pagar
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="guardarCompra()">
+                                    <i class="fas fa-save"></i> Guardar Compra
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Pago -->
+<div class="modal fade" id="modalPago" tabindex="-1" aria-labelledby="modalPagoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalPagoLabel">
+                    <i class="fas fa-dollar-sign"></i> Registrar Pago
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="pagoForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="medio_pago" class="form-label">Medio de Pago:</label>
+                        <select id="medio_pago" name="medio_pago" class="form-control" required>
+                            <option value="">Seleccione medio de pago</option>
+                            {% for medio in medios_pago %}
+                                <option value="{{ medio.id }}">{{ medio.Nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fecha_pago" class="form-label">Fecha de Pago:</label>
+                        <input type="date" id="fecha_pago" name="fecha_pago" class="form-control" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="modalPago.hide()">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="registrarPago()">
+                    <i class="fas fa-check"></i> Registrar Pago
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let modalPago;
+    let pagoRegistrado = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        modalPago = new bootstrap.Modal(document.getElementById('modalPago'));
+        
+        // Establecer la fecha actual en los campos de fecha
+        const fechaActual = new Date().toISOString().split('T')[0];
+        document.getElementById('fecha').value = fechaActual;
+        document.getElementById('fecha_pago').value = fechaActual;
+
+        // Configurar búsqueda de productos
+        const buscarProducto = document.getElementById('buscarProducto');
+        buscarProducto.addEventListener('input', function() {
+            const busqueda = this.value.toLowerCase();
+            const productos = document.querySelectorAll('.producto-item');
+            
+            productos.forEach(producto => {
+                const nombre = producto.querySelector('.col-4').textContent.toLowerCase();
+                if (nombre.includes(busqueda)) {
+                    producto.style.display = '';
+                } else {
+                    producto.style.display = 'none';
+                }
+            });
+        });
+
+        // Configurar botones de agregar producto
+        document.querySelectorAll('.btn-agregar').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.dataset.id;
+                const nombre = this.dataset.nombre;
+                const precio = this.dataset.precio;
+                const stock = this.dataset.stock;
+                
+                agregarProductoATabla(id, nombre, precio, stock);
+            });
+        });
+
+        // Verificar si hay un parámetro de compra_id en la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const compraId = urlParams.get('compra_id');
+        
+        if (compraId) {
+            // Estamos en modo edición, cargar los detalles
+            cargarDetallesCompra(compraId);
+        }
+    });
+
+    // Función para agregar producto a la tabla
+    function agregarProductoATabla(id, nombre, precio, stock) {
+        const tabla = document.querySelector("#tabla-detalles tbody");
+        
+        // Verificar si el producto ya está en la tabla
+        const filaExistente = Array.from(tabla.querySelectorAll('tr')).find(tr => 
+            tr.querySelector('select[name="producto[]"]').value === id
+        );
+
+        if (filaExistente) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Atención',
+                text: 'Este producto ya está en la lista'
+            });
+            return;
+        }
+
+        // Asegurarse de que el precio sea un número
+        const precioNumerico = parseFloat(precio) || 0;
+        
+        // Crear la nueva fila
+        const nuevaFila = document.createElement("tr");
+        nuevaFila.innerHTML = `
+            <td>
+                <select name="producto[]" class="form-control" required>
+                    <option value="${id}" selected>${nombre}</option>
+                </select>
+            </td>
+            <td>
+                <input type="number" name="cantidad[]" class="form-control cantidad" min="1" value="1" required />
+            </td>
+            <td>
+                <input type="number" name="precio[]" class="form-control precio" step="0.01" min="0" value="${precioNumerico.toFixed(2)}" required />
+            </td>
+            <td class="subtotal">$${precioNumerico.toFixed(2)}</td>
+            <td>
+                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); calcularTotal();">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tabla.appendChild(nuevaFila);
+        
+        const inputs = nuevaFila.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('input', calcularTotal);
+        });
+
+        calcularTotal();
+    }
+
+    function calcularTotal() {
+        let total = 0;
+        document.querySelectorAll("#tabla-detalles tbody tr").forEach(fila => {
+            const cantidad = parseFloat(fila.querySelector('.cantidad').value) || 0;
+            const precio = parseFloat(fila.querySelector('.precio').value) || 0;
+            const subtotal = cantidad * precio;
+            fila.querySelector('.subtotal').textContent = `$${subtotal.toFixed(2)}`;
+            total += subtotal;
+        });
+        document.getElementById('total').textContent = total.toFixed(2);
+    }
+
+    function mostrarModalPago() {
+        modalPago.show();
+    }
+
+    function registrarPago() {
+        const medioPago = document.getElementById('medio_pago').value;
+        const fechaPago = document.getElementById('fecha_pago').value;
+        
+        if (!medioPago || !fechaPago) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Atención',
+                text: 'Debe completar todos los campos del pago'
+            });
+            return;
+        }
+        
+        // Crear campos ocultos para el pago
+        const form = document.getElementById('compraForm');
+        let medioPagoInput = form.querySelector('input[name="medio_pago"]');
+        let fechaPagoInput = form.querySelector('input[name="fecha_pago"]');
+        
+        if (!medioPagoInput) {
+            medioPagoInput = document.createElement('input');
+            medioPagoInput.type = 'hidden';
+            medioPagoInput.name = 'medio_pago';
+            form.appendChild(medioPagoInput);
+        }
+        
+        if (!fechaPagoInput) {
+            fechaPagoInput = document.createElement('input');
+            fechaPagoInput.type = 'hidden';
+            fechaPagoInput.name = 'fecha_pago';
+            form.appendChild(fechaPagoInput);
+        }
+        
+        // Asignar valores
+        medioPagoInput.value = medioPago;
+        fechaPagoInput.value = fechaPago;
+        
+        pagoRegistrado = true;
+        modalPago.hide();
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Éxito',
+            text: 'Pago registrado exitosamente'
+        });
+    }
+
+    function guardarCompra() {
+        // Validar proveedor
+        const proveedor = document.getElementById('proveedor').value;
+        if (!proveedor) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Atención',
+                text: 'Debe seleccionar un proveedor'
+            });
+            return;
+        }
+
+        // Validar que haya al menos un producto
+        const productos = document.querySelectorAll('select[name="producto[]"]');
+        if (productos.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Atención',
+                text: 'Debe agregar al menos un producto'
+            });
+            return;
+        }
+
+        const formData = new FormData(document.getElementById('compraForm'));
+        
+        // Establecer el estado según si se registró el pago
+        formData.append('estado', pagoRegistrado ? 'PAGADA' : 'PENDIENTE');
+        
+        // Agregar datos del pago si se registró
+        if (pagoRegistrado) {
+            const medioPago = document.getElementById('medio_pago').value;
+            const fechaPago = document.getElementById('fecha_pago').value;
+            
+            if (!medioPago || !fechaPago) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Atención',
+                    text: 'Debe completar todos los campos del pago'
+                });
+                return;
+            }
+            
+            formData.append('medio_pago', medioPago);
+            formData.append('fecha_pago', fechaPago);
+        }
+        
+        fetch('{% url "compras" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Éxito',
+                    text: 'Compra guardada exitosamente'
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error al guardar la compra: ' + data.error
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al guardar la compra'
+            });
+        });
+    }
+
+    // Agregar esta función para cargar los detalles de una compra existente
+    function cargarDetallesCompra(compraId) {
+        fetch(`{% url 'obtener_detalles_compra' %}?compra_id=${compraId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Establecer información básica
+                    document.getElementById('proveedor').value = data.compra.proveedor_id;
+                    document.getElementById('fecha').value = data.compra.fecha;
+                    
+                    // Cargar los detalles de productos
+                    const detalles = data.detalles;
+                    detalles.forEach(detalle => {
+                        agregarProductoATabla(
+                            detalle.producto_id,
+                            detalle.producto_nombre,
+                            detalle.precio_unitario, // Usar el precio histórico
+                            detalle.stock_actual
+                        );
+                    });
+                    
+                    // Si está pagada, mostrar los datos del pago
+                    if (data.compra.estado === 'PAGADA') {
+                        pagoRegistrado = true;
+                        document.getElementById('medio_pago').value = data.compra.medio_pago_id;
+                        document.getElementById('fecha_pago').value = data.compra.fecha_pago;
+                    }
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error al cargar los detalles: ' + data.error
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error al cargar los detalles'
+                });
+            });
+    }
+</script>
+{% endblock %} 

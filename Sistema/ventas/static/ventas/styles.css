@@ -1,0 +1,20 @@
+body {
+    background-color: #f8f9fa;
+}
+
+h2 {
+    color: #28a745; /* Verde */
+}
+
+.table {
+    margin-top: 20px;
+}
+
+.card {
+    margin-top: 20px;
+}
+
+.btn {
+    width: 100%;
+    margin-top: 10px;
+}

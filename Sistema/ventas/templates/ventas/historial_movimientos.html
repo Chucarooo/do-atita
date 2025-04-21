@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ titulo }}</h5>
+                    <a href="{% url 'ajuste_stock' %}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Nuevo Ajuste
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- Filtros -->
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="{{ form.producto.id_for_label }}">Producto:</label>
+                                    {{ form.producto }}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="{{ form.tipo.id_for_label }}">Tipo:</label>
+                                    {{ form.tipo }}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="{{ form.origen.id_for_label }}">Origen:</label>
+                                    {{ form.origen }}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="{{ form.fecha_desde.id_for_label }}">Desde:</label>
+                                    {{ form.fecha_desde }}
+                </div>
+                </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="{{ form.fecha_hasta.id_for_label }}">Hasta:</label>
+                                    {{ form.fecha_hasta }}
+                </div>
+                </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-search"></i>
+                    </button>
+                            </div>
+                </div>
+            </form>
+    
+    <!-- Tabla de Movimientos -->
+            <div class="table-responsive">
+                        <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Producto</th>
+                            <th>Tipo</th>
+                            <th>Cantidad</th>
+                            <th>Stock Anterior</th>
+                            <th>Stock Resultante</th>
+                            <th>Origen</th>
+                            <th>Usuario</th>
+                                    <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimiento in movimientos %}
+                        <tr>
+                            <td>{{ movimiento.Fecha|date:"d/m/Y H:i" }}</td>
+                            <td>{{ movimiento.Producto.Nombre }}</td>
+                            <td>
+                                {% if movimiento.Tipo == 'ENTRADA' %}
+                                        <span class="badge badge-success">Entrada</span>
+                                {% else %}
+                                        <span class="badge badge-danger">Salida</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ movimiento.Cantidad }}</td>
+                            <td>{{ movimiento.StockAnterior }}</td>
+                            <td>{{ movimiento.StockResultante }}</td>
+                            <td>{{ movimiento.get_OrigenMovimiento_display }}</td>
+                                    <td>{{ movimiento.Usuario.username }}</td>
+                                    <td>{{ movimiento.Observaciones|default:"" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                                    <td colspan="9" class="text-center">No se encontraron movimientos</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if movimientos.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                    {% if movimientos.has_previous %}
+                    <li class="page-item">
+                                <a class="page-link" href="?page={{ movimientos.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                    </li>
+                    {% endif %}
+                    
+                            {% for num in movimientos.paginator.page_range %}
+                            <li class="page-item {% if movimientos.number == num %}active{% endif %}">
+                                <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    {{ num }}
+                                </a>
+                        </li>
+                    {% endfor %}
+                    
+                    {% if movimientos.has_next %}
+                    <li class="page-item">
+                                <a class="page-link" href="?page={{ movimientos.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+    // Inicializar Select2
+    $('.select2').select2({
+        theme: 'bootstrap4'
+    });
+    });
+</script>
+{% endblock %} 

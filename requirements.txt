@@ -1,0 +1,7 @@
+Django                      # Python Web Framework
+Faker                       # Generador de información aleatoria para los test.
+django-bootstrap5
+django-widget-tweaks
+pillow
+django-humanize
+django-weasyprint

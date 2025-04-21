@@ -1,0 +1,38 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="{% static 'img/logo.png' %}">
+    {% bootstrap_css %}
+    <link rel="stylesheet" href="{% static 'css/login_register.css' %}">
+    <title>Registro de Usuario</title>
+</head>
+
+<body>
+    <div class="register-container">
+        <div class="register-header">
+            <h2 class="register-title">Crear Cuenta</h2>
+            <p class="register-subtitle">Completa el formulario para registrarte</p>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            {% bootstrap_form form %}
+            <button type="submit" class="btn btn-register">Registrarse</button>
+        </form>
+        {% if messages %}
+            {% bootstrap_messages %}
+        {% endif %}
+        <div class="register-links">
+            <a href="{% url 'Login' %}">¿Ya tienes una cuenta? Inicia sesión</a>
+        </div>
+    </div>
+
+    {% bootstrap_javascript %}
+</body>
+
+</html>

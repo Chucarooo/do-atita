@@ -1,0 +1,97 @@
+body {
+    background-color: #0B4C6F;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, sans-serif;
+}
+
+.login-container, .register-container {
+    background-color: #3498DB;
+    width: 100%;
+    max-width: 400px;
+    padding: 35px;
+    border-radius: 5px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.login-title, .register-title {
+    color: white;
+    font-size: 28px;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.form-control {
+    background-color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    height: auto;
+}
+
+.form-control::placeholder {
+    color: #aaa;
+}
+
+.btn-login, .btn-register {
+    background-color: #85C1E9;
+    color: #333;
+    border: none;
+    border-radius: 4px;
+    padding: 12px;
+    width: 100%;
+    font-weight: 500;
+    margin-top: 10px;
+    transition: all 0.3s;
+}
+
+.btn-login:hover, .btn-register:hover {
+    background-color: #74b1d8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.login-links, .register-links {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.login-links a, .register-links a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 14px;
+    display: block;
+    margin: 8px 0;
+}
+
+.login-links a:hover, .register-links a:hover {
+    color: white;
+}
+
+.alert {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.register-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 16px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.helptext {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    margin-top: -15px;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.register-container {
+    max-width: 500px;
+} 

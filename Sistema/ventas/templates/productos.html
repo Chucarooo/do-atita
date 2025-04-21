@@ -1,0 +1,951 @@
+{% extends "base.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block content %}
+
+<!-- Cargar jQuery y Bootstrap primero -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<link rel="stylesheet" href="{% static 'index/css/b4.css' %}">
+<script src="{% static 'index/js/b4.js' %}"></script>
+
+<script>
+    let productos = productos || [];
+    let porcentajeContado = 30;
+    let porcentajeLista = 40;
+
+    $.ajaxSetup({
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    });
+
+    function actualizarSelectGenerico(url, selector, nombreProp = 'Nombre') {
+        $.ajax({
+            url: url,
+            success: function(data) {
+                const select = $(selector);
+                const currentValue = select.val();
+                select.empty().append('<option value="">---------</option>');
+                const key = Object.keys(data)[0];
+                data[key].forEach(item => {
+                    select.append(`<option value="${item.id}">${item[nombreProp]}</option>`);
+                });
+                if (currentValue) select.val(currentValue);
+            }
+        });
+    }
+
+    function guardarPorcentajes() {
+        porcentajeContado = parseFloat($('#porcentajeContado').val());
+        porcentajeLista = parseFloat($('#porcentajeLista').val());
+        const precioCosto = $('.PrecioCosto').val();
+        if (precioCosto) calcularPrecios(precioCosto);
+        $('#ConfigurarPorcentajesModal').modal('hide');
+        Swal.fire({ icon: 'success', title: 'Éxito', text: 'Porcentajes actualizados', timer: 1500 });
+    }
+
+    function calcularPrecios(precioCosto) {
+        const costo = parseFloat(precioCosto);
+        if (!isNaN(costo)) {
+            const precioContado = $('.PrecioDeContado');
+            const precioLista = $('.PrecioDeLista');
+            if (!precioContado.data('modificadoManualmente')) {
+                precioContado.val((costo * (1 + porcentajeContado / 100)).toFixed(2));
+            }
+            if (!precioLista.data('modificadoManualmente')) {
+                precioLista.val((costo * (1 + porcentajeLista / 100)).toFixed(2));
+            }
+        }
+    }
+    function guardarMarca() {
+        var nombreMarca = document.getElementById('nombreMarca').value.trim();
+        
+        if (!nombreMarca) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Por favor ingrese un nombre para la marca'
+            });
+            return;
+        }
+
+        var formData = new FormData(document.getElementById('formMarca'));
+        
+        // Verificar si ya existe una marca con ese nombre
+        $.ajax({
+            url: '{% url "verificar_marca" %}',
+            type: 'POST',
+            data: {
+                'nombre': nombreMarca,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.existe) {
+                    // Si la marca existe, obtener su ID y seleccionarla
+                    $.ajax({
+                        url: '{% url "get_marcas" %}',
+                        success: function(data) {
+                            var marcaSelect = document.getElementById('id_Marca');
+                            if (!marcaSelect) return;
+                            
+                            marcaSelect.innerHTML = '<option value="">---------</option>';
+                            
+                            if (data.marcas) {
+                                data.marcas.forEach(function(marca) {
+                                    var option = document.createElement('option');
+                                    option.value = marca.id;
+                                    option.textContent = marca.Nombre;
+                                    marcaSelect.appendChild(option);
+                                });
+                                // Encontrar y seleccionar la marca existente
+                                var marcaExistente = data.marcas.find(function(marca) {
+                                    return marca.Nombre.toLowerCase() === nombreMarca.toLowerCase();
+                                });
+                                if (marcaExistente) {
+                                    marcaSelect.value = marcaExistente.id;
+                                }
+                            }
+                            
+                            $('#AgregarMarcaModal').modal('hide');
+                            
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Marca existente',
+                                text: 'La marca ya existe y ha sido seleccionada',
+                                timer: 1500
+                            });
+                        }
+                    });
+                    return;
+                }
+                
+                // Si no existe, proceder a crear la marca
+                $.ajax({
+                    url: '{% url "add_marca" %}',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            document.getElementById('formMarca').reset();
+                            $('#AgregarMarcaModal').modal('hide');
+                            
+                            // Actualizar el select de marcas y seleccionar la nueva marca
+                            $.ajax({
+                                url: '{% url "get_marcas" %}',
+                                success: function(data) {
+                                    var marcaSelect = document.getElementById('id_Marca');
+                                    if (!marcaSelect) return;
+                                    
+                                    marcaSelect.innerHTML = '<option value="">---------</option>';
+                                    
+                                    if (data.marcas) {
+                                        // Ordenar las marcas por nombre
+                                        data.marcas.sort((a, b) => a.Nombre.localeCompare(b.Nombre));
+                                        
+                                        // Agregar todas las marcas
+                                        data.marcas.forEach(function(marca) {
+                                            var option = document.createElement('option');
+                                            option.value = marca.id;
+                                            option.textContent = marca.Nombre;
+                                            marcaSelect.appendChild(option);
+                                        });
+                                        
+                                        // Buscar y seleccionar la nueva marca por nombre
+                                        var nuevaMarca = data.marcas.find(function(marca) {
+                                            return marca.Nombre.toLowerCase() === nombreMarca.toLowerCase();
+                                        });
+                                        
+                                        if (nuevaMarca) {
+                                            marcaSelect.value = nuevaMarca.id;
+                                        }
+                                    }
+                                    
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Éxito',
+                                        text: 'Marca creada correctamente',
+                                        timer: 1500
+                                    });
+                                },
+                                error: function() {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: 'Error al actualizar la lista de marcas'
+                                    });
+                                }
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.error || 'Error al crear la marca'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al comunicarse con el servidor'
+                        });
+                    }
+                });
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error al verificar la marca'
+                });
+            }
+        });
+    }
+
+    function guardarCategoria() {
+        var formData = new FormData(document.getElementById('formCategoria'));
+        var nombreCategoria = document.getElementById('nombreCategoria').value.trim();
+        
+        if (!nombreCategoria) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Por favor ingrese un nombre para la categoría'
+            });
+            return;
+        }
+
+        // Verificar si ya existe una categoría con ese nombre
+        $.ajax({
+            url: '{% url "verificar_categoria" %}',
+            type: 'POST',
+            data: {
+                'nombre': nombreCategoria,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.existe) {
+                    // Si la categoría existe, obtener su ID y seleccionarla
+                    $.ajax({
+                        url: '{% url "get_categorias" %}',
+                        success: function(data) {
+                            var categoriaSelect = document.getElementById('id_Categoria');
+                            if (!categoriaSelect) return;
+                            
+                            categoriaSelect.innerHTML = '<option value="">---------</option>';
+                            
+                            if (data.categorias) {
+                                data.categorias.forEach(function(categoria) {
+                                    var option = document.createElement('option');
+                                    option.value = categoria.id;
+                                    option.textContent = categoria.Nombre;
+                                    categoriaSelect.appendChild(option);
+                                });
+                                // Encontrar y seleccionar la categoría existente
+                                var categoriaExistente = data.categorias.find(function(categoria) {
+                                    return categoria.Nombre.toLowerCase() === nombreCategoria.toLowerCase();
+                                });
+                                if (categoriaExistente) {
+                                    categoriaSelect.value = categoriaExistente.id;
+                                }
+                            }
+                            
+                            $('#AgregarCategoriaModal').modal('hide');
+                            
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Categoría existente',
+                                text: 'La categoría ya existe y ha sido seleccionada',
+                                timer: 1500
+                            });
+                        }
+                    });
+                    return;
+                }
+                
+                // Si no existe, proceder a crear la categoría
+                $.ajax({
+                    url: '{% url "AddCategoria" %}',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            document.getElementById('formCategoria').reset();
+                            $('#AgregarCategoriaModal').modal('hide');
+                            
+                            // Actualizar el select de categorías y seleccionar la nueva categoría
+                            $.ajax({
+                                url: '{% url "get_categorias" %}',
+                                success: function(data) {
+                                    var categoriaSelect = document.getElementById('id_Categoria');
+                                    if (!categoriaSelect) return;
+                                    
+                                    categoriaSelect.innerHTML = '<option value="">---------</option>';
+                                    
+                                    if (data.categorias) {
+                                        // Ordenar las categorías por nombre
+                                        data.categorias.sort((a, b) => a.Nombre.localeCompare(b.Nombre));
+                                        
+                                        // Agregar todas las categorías
+                                        data.categorias.forEach(function(categoria) {
+                                            var option = document.createElement('option');
+                                            option.value = categoria.id;
+                                            option.textContent = categoria.Nombre;
+                                            categoriaSelect.appendChild(option);
+                                        });
+                                        
+                                        // Buscar y seleccionar la nueva categoría por nombre
+                                        var nuevaCategoria = data.categorias.find(function(categoria) {
+                                            return categoria.Nombre.toLowerCase() === nombreCategoria.toLowerCase();
+                                        });
+                                        
+                                        if (nuevaCategoria) {
+                                            categoriaSelect.value = nuevaCategoria.id;
+                                        }
+                                    }
+                                    
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Éxito',
+                                        text: 'Categoría creada correctamente',
+                                        timer: 1500
+                                    });
+                                },
+                                error: function() {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: 'Error al actualizar la lista de categorías'
+                                    });
+                                }
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.error || 'Error al crear la categoría'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al comunicarse con el servidor'
+                        });
+                    }
+                });
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error al verificar la categoría'
+                });
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        $('#formAgregarProducto').on('submit', function(e) {
+            e.preventDefault();
+            const nombre = $('#id_Nombre').val().trim();
+            const marca = $('#id_Marca').val();
+            const categoria = $('#id_categoria').val();
+            const precioCosto = $('#id_PrecioCosto').val();
+            const cantidad = $('#id_Cantidad').val();
+            if (!nombre || !marca || !categoria || !precioCosto || !cantidad) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Complete todos los campos' });
+                return;
+            }
+            const formData = new FormData(this);
+            $.ajax({
+                url: '{% url "AddProducto" %}',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({ icon: 'success', title: 'Agregado', text: 'Producto agregado correctamente', timer: 1500 })
+                        .then(() => location.reload());
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: response.message || 'Error al agregar producto' });
+                    }
+                },
+                error: function() {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar con el servidor' });
+                }
+            });
+        });
+
+        $('.PrecioCosto').on('input', function() { calcularPrecios(this.value); });
+        $('.PrecioDeContado, .PrecioDeLista').on('input', function() {
+            $(this).data('modificadoManualmente', true);
+        });
+
+        const today = new Date().toISOString().split('T')[0];
+        $('input[name="FechaUltimaModificacion"]').val(today);
+    });
+</script>
+
+<!-- Modal para Agregar Producto -->
+<div id="AgregarProductoModal" class="modal" data-backdrop="static" data-keyboard="false" style="overflow: scroll;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nuevo producto</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form method="POST" action="{% url 'AddProducto' %}" enctype="multipart/form-data" id="formAgregarProducto">{% csrf_token %}
+                    <!-- Información Básica -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Información Básica</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for field in form_producto %}
+                                    {% if field.name == 'Nombre' or field.name == 'Marca' or  field.name == 'CodigoDeBarras' %}
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        <div class="input-group">
+                                            {{ field|add_class:"form-control text-dark" }}
+                                            {% if field.name == 'Marca' %}
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarMarcaModal">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                            
+                                        </div>
+                                        {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clasificación -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Clasificación</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                    <label for="{{ form_producto.Categoria.id_for_label }}">{{ form_producto.Categoria.label }}</label>
+                                        <div class="input-group">
+                                        {{ form_producto.Categoria|add_class:"form-control text-dark" }}
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarCategoriaModal">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% for error in form_producto.Categoria.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                    </div>
+                    <!-- Precios -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Precios</h5>
+                            <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#ConfigurarPorcentajesModal">
+                                <i class="fas fa-cog"></i> Configurar Porcentajes
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for field in form_producto %}
+                                    {% if field.name == 'PrecioCosto' or field.name == 'PrecioDeLista' or field.name == 'PrecioDeContado' %}
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">$</span>
+                                            </div>
+                                            {{ field|add_class:"form-control text-dark precio-input"|add_class:field.name }}
+                                        </div>
+                                        {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                                {% for field in form_producto %}
+                                    {% if field.name == 'FechaUltimaModificacion' %}
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field|add_class:"form-control text-dark"|attr:"type:date" }}
+                                        {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventario -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Inventario</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                    {% for field in form_producto %}
+                                    {% if field.name == 'Cantidad' or field.name == 'CantidadMinimaSugerida' or field.name == 'UnidadDeMedida' %}
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        <div class="input-group">
+                                            {{ field|add_class:"form-control text-dark" }}
+                                            {% if field.name == 'UnidadDeMedida' %}
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarUnidadModal">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                    {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                                    </div>
+                                    {% endif %}
+                    {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% for error in form.non_field_errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endfor %}
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-success">
+                    Agregar
+                </button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Categoría -->
+<div id="AgregarCategoriaModal" class="modal" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nueva categoría</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formCategoria">{% csrf_token %}
+                    <div class="form-group">
+                        <label for="nombreCategoria">Nombre de la categoría</label>
+                        <input type="text" class="form-control" id="nombreCategoria" name="Nombre" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarCategoria()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Marca -->
+<div id="AgregarMarcaModal" class="modal" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nueva marca</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formMarca" onsubmit="return false;">{% csrf_token %}
+                    <div class="form-group">
+                        <label for="nombreMarca">Nombre de la marca</label>
+                        <input type="text" class="form-control" id="nombreMarca" name="Nombre" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarMarca()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Proveedor -->
+<div id="AgregarProveedorModal" class="modal" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nuevo proveedor</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formProveedor">{% csrf_token %}
+                    <div class="form-group">
+                        <label for="razonSocial">Razón Social</label>
+                        <input type="text" class="form-control" id="razonSocial" name="RazonSocial" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cuit">CUIT</label>
+                        <input type="text" class="form-control" id="cuit" name="CUIT" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono">Teléfono</label>
+                        <input type="text" class="form-control" id="telefono" name="Tel" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" class="form-control" id="email" name="Email">
+                    </div>
+                    <div class="form-group">
+                        <label for="direccion">Dirección</label>
+                        <input type="text" class="form-control" id="direccion" name="Direccion">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarProveedor()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Unidad de Medida -->
+<div id="AgregarUnidadModal" class="modal" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nueva unidad de medida</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formUnidad">{% csrf_token %}
+                    <div class="form-group">
+                        <label for="nombreUnidad">Nombre de la unidad de medida</label>
+                        <input type="text" class="form-control" id="nombreUnidad" name="Nombre" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarUnidad()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Configurar Porcentajes -->
+<div id="ConfigurarPorcentajesModal" class="modal" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Configurar Porcentajes de Precios</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formPorcentajes">
+                    <div class="form-group">
+                        <label for="porcentajeContado">Porcentaje para Precio de Contado</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="porcentajeContado" value="30" min="0" max="100">
+                            <div class="input-group-append">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="porcentajeLista">Porcentaje para Precio de Lista</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="porcentajeLista" value="40" min="0" max="100">
+                            <div class="input-group-append">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarPorcentajes()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Producto -->
+<div id="EditarProductoModal" class="modal" style="overflow: scroll;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Editar producto</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form method="POST" action="{% url 'EditProducto' %}" enctype="multipart/form-data">{% csrf_token %}
+                    <input type="hidden" id="id_producto_editar" name="id_producto_editar">
+                    
+                    <!-- Información Básica -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Información Básica</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for field in form_producto %}
+                                    {% if field.name == 'Nombre' or field.name == 'Descripcion' or field.name == 'Marca' or field.name == 'Proveedor' or field.name == 'CodigoDeBarras' %}
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        <div class="input-group">
+                                            {{ field|add_class:"form-control text-dark" }}
+                                            {% if field.name == 'Marca' %}
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarMarcaModal">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                            
+                                           
+                                        </div>
+                                        {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clasificación -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Clasificación</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                    <label for="{{ form_producto.Categoria.id_for_label }}">{{ form_producto.Categoria.label }}</label>
+                                        <div class="input-group">
+                                        {{ form_producto.Categoria|add_class:"form-control text-dark" }}
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarCategoriaModal">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            </div>
+                                    {% for error in form_producto.Categoria.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Precios -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Precios</h5>
+                            <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#ConfigurarPorcentajesModal">
+                                <i class="fas fa-cog"></i> Configurar Porcentajes
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for field in form_producto %}
+                                    {% if field.name == 'PrecioCosto' or field.name == 'PrecioDeLista' or field.name == 'PrecioDeContado' %}
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">$</span>
+                                            </div>
+                                            {{ field|add_class:"form-control text-dark precio-input"|add_class:field.name }}
+                                        </div>
+                                        {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                                {% for field in form_producto %}
+                                    {% if field.name == 'FechaUltimaModificacion' %}
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field|add_class:"form-control text-dark"|attr:"type:date" }}
+                                        {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventario -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Inventario</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for field in form_producto %}
+                                    {% if field.name == 'Cantidad' or field.name == 'CantidadMinimaSugerida' or field.name == 'UnidadDeMedida' %}
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        <div class="input-group">
+                                            {{ field|add_class:"form-control text-dark" }}
+                                            {% if field.name == 'UnidadDeMedida' %}
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarUnidadModal">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                    {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                                    </div>
+                                    {% endif %}
+                    {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% for error in form.non_field_errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endfor %}
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-success">
+                    Guardar cambios
+                </button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="EliminarProductoModal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Eliminar producto</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <p class="labelmodal">¿Estás seguro?</p>
+                <form method="POST" action="{% url 'DeleteProducto' %}">{% csrf_token %}
+                    <input type="hidden" id="id_producto_eliminar" name="id_producto_eliminar">
+            </div>
+            <div class="modal-footer bg-dark text-white">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    Volver
+                </button>
+                <button type="submit" class="btn btn-success">
+                    Aceptar
+                </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <h3 class="text-center">Productos <i class="fas fa-boxes"></i></h3>
+        <div class="col-md-3 pb-2">
+            <a href="#AgregarProductoModal" data-toggle="modal" data-dismiss="modal">
+                <button type="button" class="btn btn-success">
+                    Agregar Producto
+                    <i class="fas fa-plus-circle"></i>
+                </button>
+            </a>
+        </div>
+        <div class="card card-body" style="overflow:scroll">
+            <table class="table table-hover table-primary" id="myTable">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Marca</th>
+                        <th>Cantidad</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="text-dark">
+                    {% for producto in productos %}
+                    <tr>
+                        <td>{{ producto.Nombre }}</td>
+                        <td>{{ producto.Marca }}</td>
+                        <td>{{ producto.Cantidad|floatformat:0 }}</td>
+                        <td>
+                            <button onclick="editarProducto('{{ producto.id }}')"
+                                class="btn btn-dark-outline btn-sm" data-toggle="modal" href="#EditarProductoModal">
+                                <img src="{% static 'index/img/editar.png' %}" alt="Editar" width="30">
+                            </button>
+                            <button onclick="eliminarProducto('{{ producto.id }}')"
+                                class="btn btn-dark-outline btn-sm" data-toggle="modal" href="#EliminarProductoModal">
+                                <img src="{% static 'index/img/delete.png' %}" alt="Eliminar" width="30">
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<script>
+    Swal.fire({
+        icon: 'success',
+        title: 'Éxito',
+        text: "{{ message }}",
+        timer: 1500
+    });
+</script>
+{% endfor %}
+{% endif %}
+{% endblock %}

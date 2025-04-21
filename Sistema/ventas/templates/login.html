@@ -1,0 +1,38 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="{% static 'img/logo.png' %}">
+    {% bootstrap_css %}
+    <link rel="stylesheet" href="{% static 'css/login_register.css' %}">
+    <title>Iniciar Sesión - Fragancia Hogar</title>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="text-center mb-4">
+            <img src="{% static 'img/logoSinFondo.png' %}" alt="Logo Fragancia Hogar" class="img-fluid mb-3" style="max-width: 250px;">
+            
+        </div>
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            {% bootstrap_form form %}
+            <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+        </form>
+        {% if messages %}
+            {% bootstrap_messages %}
+        {% endif %}
+        <div class="login-links text-center mt-3">
+            <a href="{% url 'Register' %}" class="text-decoration-none">¿No tienes Cuenta? Regístrate</a>
+        </div>
+    </div>
+
+    {% bootstrap_javascript %}
+</body>
+
+</html>

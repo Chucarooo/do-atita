@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% load widget_tweaks %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'index/css/b4.css' %}">
+<script src="{% static 'index/js/b4.js' %}"></script>
+
+<div id="AgregarCategoriaModal" class="modal" style="overflow: scroll;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nueva categoría</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form method="POST" action="{% url 'AddCategoria' %}" enctype="multipart/form-data">{% csrf_token %}
+                    <div class="form-group">
+                        <label>{{form_personal.Nombre.label}}</label>
+                        {{form_personal.Nombre|add_class:"form-control text-dark"}}
+                    </div>
+
+                    {% for error in form_personal.errors %}
+                    <p class="alarma">{{error}}</p>
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                    <p class="alarma">{{error}}</p>
+                    {% endfor %}
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-success">
+                    Agregar
+                </button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Subcategoría -->
+<div id="AgregarSubcategoriaModal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nueva subcategoría</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formSubcategoria">{% csrf_token %}
+                    <input type="hidden" id="categoriaId" name="Categoria">
+                    <div class="form-group">
+                        <label for="nombreSubcategoria">Nombre de la subcategoría</label>
+                        <input type="text" class="form-control" id="nombreSubcategoria" name="Nombre" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarSubcategoria()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="EditarCategoriaModal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Editar Categoría</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form method="POST" action="{% url 'EditCategoria' %}" id="form-editar">
+                    {% csrf_token %}
+                    <input type="hidden" id="id_categoria_editar" name="id_categoria_editar">
+                    
+                    <div class="form-group">
+                        <label for="nombre_editar">{{ form_editar.Nombre.label }}</label>
+                        {{ form_editar.Nombre|add_class:"form-control" }}
+                    </div>
+
+                    {% for field in form_editar %}
+                        {% for error in field.errors %}
+                            <div class="alert alert-danger">{{ error }}</div>
+                        {% endfor %}
+                    {% endfor %}
+
+                    {% for error in form_editar.non_field_errors %}
+                        <div class="alert alert-danger">{{ error }}</div>
+                    {% endfor %}
+
+                    <div class="modal-footer bg-dark border-0 mt-4">
+                        <button type="button" class="btn btn-danger" data-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            Guardar cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="EliminarCategoriaModal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Eliminar</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <p class="labelmodal">¿Estás seguro?</p>
+                <form method="POST" action="{% url 'DeleteCategoria' %}">{% csrf_token %}
+                    <input type="hidden" id="id_categoria_eliminar" name="id_categoria_eliminar">
+            </div>
+            <div class="modal-footer bg-dark text-white">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                Volver
+                </button>
+                <button type="submit" class="btn btn-success">
+                    Aceptar
+                </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <h3 class="text-center">Categorias   <i class="fas fa-users"></i></h3>
+        <div class="col-md-3 pb-2">
+            <a href="#AgregarCategoriaModal"
+                data-toggle="modal" data-dismiss="modal">
+                <button type="button" class="btn btn-success">
+                    Agregar Categoria
+                    <i class="fas fa-plus-circle"></i>
+                </button>
+            </a>
+        </div>
+        <div class="card card-body" style="overflow:scroll">
+            <table class="table table-hover table-primary" id="myTable">
+                <thead>
+                    <tr>
+                        <th style="width: 50px"></th>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="text-dark">
+                    {% for i in categorias %}
+                    <tr>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-info" onclick="toggleSubcategorias('{{i.id}}')">
+                                <i id="icon-{{i.id}}" class="fas fa-plus"></i>
+                            </button>
+                        </td>
+                        <td>{{i.Nombre}}</td>
+                        <td>
+                            <button onclick="agregarSubcategoria('{{i.id}}', '{{i.Nombre}}')" class="btn btn-success btn-sm" title="Agregar Subcategoría">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button onclick="editarCategoria('{{i.id}}','{{i.Nombre}}')" class="btn btn-dark-outline btn-sm" data-toggle="modal"
+                                href="#EditarCategoriaModal" title="Editar Categoría">
+                                <img src="{% static 'index/img/editar.png' %}" alt="Error" width="30">
+                            </button>
+                            <button onclick="eliminarCategoria('{{i.id}}')" class="btn btn-dark-outline btn-sm"
+                                data-toggle="modal" href="#EliminarCategoriaModal" title="Eliminar Categoría">
+                                <img src="{% static 'index/img/delete.png' %}" alt="Error" width="30">
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="subcategorias-{{i.id}}" style="display: none;">
+                        <td></td>
+                        <td colspan="2" class="bg-light">
+                            <div style="margin-left: 30px; border-left: 3px solid #17a2b8; padding-left: 15px;">
+                                {% for subcategoria in i.subcategoria_set.all %}
+                                    <div class="py-2 d-flex align-items-center">
+                                        <i class="fas fa-angle-right mr-2 text-info"></i>
+                                        <span class="mr-2">{{subcategoria.Nombre}}</span>
+                                        <button onclick="eliminarSubcategoria('{{subcategoria.id}}')" 
+                                                class="btn btn-danger btn-sm ml-2">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% if messages %}
+{% for message in messages %}
+<script>
+    Swal.fire({
+        icon: '{% if "error" in message.tags %}error{% else %}success{% endif %}',
+        title: '{% if "error" in message.tags %}Error{% else %}Éxito{% endif %}',
+        text: "{{message}}",
+    })
+</script>
+{% endfor %}
+{% endif %}
+
+<script>
+function editarCategoria(id, nombre) {
+    document.getElementById('id_categoria_editar').value = id;
+    document.getElementById('nombre_editar').value = nombre;
+    $('#EditarCategoriaModal').modal('show');
+}
+
+function eliminarCategoria(id) {
+    document.getElementById('id_categoria_eliminar').value = id;
+    $('#EliminarCategoriaModal').modal('show');
+}
+
+function toggleSubcategorias(categoriaId) {
+    const row = document.getElementById('subcategorias-' + categoriaId);
+    const icon = document.getElementById('icon-' + categoriaId);
+    
+    if (row.style.display === 'none') {
+        row.style.display = 'table-row';
+        icon.classList.remove('fa-plus');
+        icon.classList.add('fa-minus');
+    } else {
+        row.style.display = 'none';
+        icon.classList.remove('fa-minus');
+        icon.classList.add('fa-plus');
+    }
+}
+
+function agregarSubcategoria(categoriaId, categoriaNombre) {
+    document.getElementById('categoriaId').value = categoriaId;
+    $('#AgregarSubcategoriaModal').modal('show');
+}
+
+function guardarSubcategoria() {
+    const formData = new FormData(document.getElementById('formSubcategoria'));
+    
+    $.ajax({
+        url: '{% url "AddSubcategoria" %}',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Éxito',
+                    text: 'Subcategoría agregada correctamente',
+                    timer: 1500
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: response.message || 'Error al crear la subcategoría'
+                });
+            }
+        },
+        error: function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al crear la subcategoría'
+            });
+        }
+    });
+}
+
+function eliminarSubcategoria(subcategoriaId) {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: "Esta acción no se puede deshacer",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '{% url "DeleteSubcategoria" %}',
+                type: 'POST',
+                data: {
+                    'subcategoria_id': subcategoriaId,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: 'Subcategoría eliminada correctamente',
+                            timer: 1500
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'Error al eliminar la subcategoría'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error al eliminar la subcategoría'
+                    });
+                }
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

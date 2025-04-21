@@ -1,0 +1,264 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="icon" type="image/x-icon" href="{% static 'img/logo.png' %}">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static 'lib/adminlite/plugins/fontawesome-free/css/all.min.css' %}">
+  <!-- Tempusdominus Bootstrap 4 -->
+  <link rel="stylesheet"
+    href="{% static 'lib/adminlite/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css' %}">
+  <!-- iCheck -->
+  <link rel="stylesheet" href="{% static 'lib/adminlite/plugins/icheck-bootstrap/icheck-bootstrap.min.css' %}">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'lib/adminlite/css/adminlte.min.css' %}">
+  <!-- overlayScrollbars -->
+  <link rel="stylesheet" href="{% static 'lib/adminlite/plugins/overlayScrollbars/css/OverlayScrollbars.min.css' %}">
+  <!-- Daterange picker -->
+  <link rel="stylesheet" href="{% static 'lib/adminlite/plugins/daterangepicker/daterangepicker.css' %}">
+  <!-- summernote -->
+  <link rel="stylesheet" href="{% static 'lib/adminlite/plugins/summernote/summernote-bs4.min.css' %}">
+  <link rel="stylesheet" href="{% static 'index/css/main.css' %}">
+  <link rel="stylesheet" type="text/css" href="{% static 'index/DataTables/datatables.min.css' %}">
+  <link rel="stylesheet" type="text/css"
+    href="{% static 'index/DataTables/Buttons-2.0.1/css/buttons.dataTables.min.css' %}">
+  <link rel="stylesheet" href="{% static 'jquery-ui/jquery-ui.min.css' %}">
+
+  <script type="text/javascript" charset="utf8" src="{% static 'index/js/jquery.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'jquery-ui/jquery-ui.min.css' %}">
+  <script src="{% static 'jquery-ui/jquery-ui.min.js' %}"></script>
+  <script type="text/javascript" charset="utf8" src="{% static 'index/js/sweet.js' %}"></script>
+
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed sidebar-closed sidebar-collapse">
+  <div class="wrapper">
+
+    <!-- Navbar -->
+    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+      <!-- Left navbar links -->
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+        </li>
+      </ul>
+
+      <!-- Right navbar links -->
+      <ul class="navbar-nav ml-auto">
+        <!-- Notifications Dropdown Menu -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+          {{ user.username }} <i class="fas fa-user"></i>
+          </a>
+          <div class="dropdown-menu dropdown-menu-right">
+            {% if user.is_authenticated %}
+            <a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+              <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+            </a>
+            <form id="logout-form" method="post" action="{% url 'Logout' %}" style="display: none;">
+              {% csrf_token %}
+            </form>
+            {% else %}
+            <a class="dropdown-item" href="{% url 'Login' %}">Iniciar sesión</a>
+            {% endif %}
+          </div>
+        </li>
+      </ul>
+    </nav>
+    <!-- /.navbar -->
+
+    <!-- Main Sidebar Container -->
+    <aside class="main-sidebar sidebar-dark-primary elevation-4">
+      <!-- Brand Logo -->
+      <a href="{% url 'Index' %}" class="brand-link">
+        <img src="{% static 'img/logo.png' %}" alt="Logo" class="brand-image img-circle elevation-3"
+          style="opacity: .8">
+        <span class="brand-text font-weight-light">Fragancia Hogar</span>
+      </a>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+
+        <!-- Sidebar Menu -->
+        <nav class="mt-2">
+          <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+            <!-- Add icons to the links using the .nav-icon class
+            with font-awesome or any other icon font library -->
+
+            <li class="nav-header">CAJA</li>
+            <li class="nav-item">
+              <a href="{% url 'caja' %}" class="nav-link">
+                <i class="nav-icon fas fa-cash-register"></i>
+                <p>Operaciones de Caja</p>
+              </a>
+            </li>
+            {% if user.is_staff %}
+            <li class="nav-item">
+              <a href="{% url 'historial_cajas' %}" class="nav-link">
+                <i class="nav-icon fas fa-history"></i>
+                <p>Historial de Cajas</p>
+              </a>
+            </li>
+            {% endif %}
+
+            <li class="nav-header">VENTAS</li>
+            <li class="nav-item">
+              <a href="{% url 'ventas' %}" class="nav-link">
+                <i class="nav-icon fas fa-shopping-cart"></i>
+                <p>Nueva Venta</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'Clientes' %}" class="nav-link">
+                <i class="nav-icon fas fa-users"></i>
+                <p>Clientes</p>
+              </a>
+            </li>
+
+            <li class="nav-header">COMPRAS</li>
+            <li class="nav-item">
+              <a href="{% url 'compras' %}" class="nav-link">
+                <i class="nav-icon fas fa-truck"></i>
+                <p>Nueva Compra</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'Proveedores' %}" class="nav-link">
+                <i class="nav-icon fas fa-truck-loading"></i>
+                <p>Proveedores</p>
+              </a>
+            </li>
+
+            {% if user.is_superuser %}
+            <li class="nav-header">INFORMES</li>
+            <li class="nav-item">
+              <a href="{% url 'dashboard' %}" class="nav-link">
+                <i class="nav-icon fas fa-chart-line"></i>
+                <p>Ventas por Período</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'informe_costos_ganancias' %}" class="nav-link">
+                <i class="nav-icon fas fa-chart-bar"></i>
+                <p>Costos y Ganancias</p>
+              </a>
+            </li>
+            {% endif %}
+
+            <li class="nav-header">INVENTARIO</li>
+            <li class="nav-item">
+              <a href="{% url 'Productos' %}" class="nav-link">
+                <i class="nav-icon fas fa-boxes"></i>
+                <p>Productos</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'historial_movimientos' %}" class="nav-link">
+                <i class="nav-icon fas fa-exchange-alt"></i>
+                <p>Movimientos de Stock</p>
+              </a>
+            </li>
+            
+            <li class="nav-item">
+              <a href="{% url 'Categorias' %}" class="nav-link">
+                <i class="nav-icon fas fa-tags"></i>
+                <p>Categorías</p>
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <!-- /.sidebar-menu -->
+      </div>
+      <!-- /.sidebar -->
+    </aside>
+
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper">
+
+      <!-- Main content -->
+      <section class="content">
+        <div class="container-fluid">
+          {% if messages %}
+              {% for message in messages %}
+                  {% if message.tags != 'success' or not request.session.venta_exitosa %}
+                      <div class="alert alert-{{ message.tags }}">
+                          {{ message }}
+                      </div>
+                  {% endif %}
+              {% endfor %}
+          {% endif %}
+          {% block content %}
+          {% endblock %}
+        </div><!-- /.container-fluid -->
+      </section>
+      <!-- /.content -->
+    </div>
+    <!-- /.content-wrapper -->
+    <footer class="main-footer text-center text-primary">
+      <!-- <a href="https://www.youtube.com/c/AlejandroHernandezmicanal/videos" target="_blank" rel="noopener noreferrer">
+        <strong>¡Contáctame! <img src="{% static 'index/img/youtube.png' %}" alt="Logo Youtube" width="20"> &copy; El
+          inge
+          Alex
+        </strong>
+      </a> -->
+      <a href="">Sistema Valenciaga - Vargas &copy</a>
+    </footer>
+
+    <!-- Control Sidebar -->
+    <aside class="control-sidebar control-sidebar-dark">
+      <!-- Control sidebar content goes here -->
+    </aside>
+    <!-- /.control-sidebar -->
+  </div>
+  <!-- ./wrapper -->
+
+  <!-- jQuery -->
+  <script src="{% static 'lib/adminlite/plugins/jquery/jquery.min.js' %}"></script>
+  <!-- jQuery UI 1.11.4 -->
+  <script src="{% static 'lib/adminlite/plugins/jquery-ui/jquery-ui.min.js' %}"></script>
+  <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
+  <script>
+    $.widget.bridge('uibutton', $.ui.button)
+  </script>
+  <!-- Bootstrap 4 -->
+  <script src="{% static 'lib/adminlite/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <!-- ChartJS -->
+  <!-- Sparkline -->
+  <script src="{% static 'lib/adminlite/plugins/sparklines/sparkline.js' %}"></script>
+  <!-- jQuery Knob Chart -->
+  <script src="{% static 'lib/adminlite/plugins/jquery-knob/jquery.knob.min.js' %}"></script>
+  <!-- daterangepicker -->
+  <script src="{% static 'lib/adminlite/plugins/moment/moment.min.js' %}"></script>
+  <script src="{% static 'lib/adminlite/plugins/daterangepicker/daterangepicker.js' %}"></script>
+  <!-- Tempusdominus Bootstrap 4 -->
+  <script src="{% static 'lib/adminlite/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
+  <!-- Summernote -->
+  <script src="{% static 'lib/adminlite/plugins/summernote/summernote-bs4.min.js' %}"></script>
+  <!-- overlayScrollbars -->
+  <script src="{% static 'lib/adminlite/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js' %}"></script>
+  <!-- AdminLTE App -->
+  <script src="{% static 'lib/adminlite/js/adminlte.js' %}"></script>
+  <!-- AdminLTE for demo purposes -->
+  <script src="{% static 'lib/adminlite/js/demo.js' %}"></script>
+  <!-- DataTables -->
+  <script src="{% static 'index/DataTables/datatables.min.js' %}"></script>
+  <!-- SweetAlert2 -->
+  <script src="{% static 'index/js/sweet.js' %}"></script>
+  <!-- Custom scripts -->
+  <script>
+    $(document).ready(function() {
+      // Inicializar DataTables
+      $('#myTable').DataTable({
+        "language": {
+          "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="h3 mb-4 text-gray-800">
+        <i class="fas fa-exchange-alt mr-2"></i>Historial de Movimientos de Stock
+    </h1>
+    
+    <!-- Filtros -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-primary text-white d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold">
+                <i class="fas fa-filter mr-2"></i>Filtros
+            </h6>
+            <button class="btn btn-light btn-sm" type="button" data-toggle="collapse" data-target="#collapseFilters" aria-expanded="true" aria-controls="collapseFilters">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+        <div class="card-body collapse show" id="collapseFilters">
+            <form method="GET" action="{% url 'historial_movimientos' %}" class="row">
+                <!-- Filtro por Producto -->
+                <div class="col-md-3 mb-3">
+                    <label for="producto">Producto:</label>
+                    <select name="producto" id="producto" class="form-control">
+                        <option value="">Todos los productos</option>
+                        {% for producto in productos %}
+                        <option value="{{ producto.id }}" {% if filtros.producto_id == producto.id|stringformat:"i" %}selected{% endif %}>
+                            {{ producto.Nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filtro por Categoría -->
+                <div class="col-md-3 mb-3">
+                    <label for="categoria">Categoría:</label>
+                    <select name="categoria" id="categoria" class="form-control">
+                        <option value="">Todas las categorías</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if filtros.categoria_id == categoria.id|stringformat:"i" %}selected{% endif %}>
+                            {{ categoria.Nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filtro por Subcategoría -->
+                <div class="col-md-3 mb-3">
+                    <label for="subcategoria">Subcategoría:</label>
+                    <select name="subcategoria" id="subcategoria" class="form-control">
+                        <option value="">Todas las subcategorías</option>
+                        {% for subcategoria in subcategorias %}
+                        <option value="{{ subcategoria.id }}" {% if filtros.subcategoria_id == subcategoria.id|stringformat:"i" %}selected{% endif %}>
+                            {{ subcategoria.Nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filtro por Marca -->
+                <div class="col-md-3 mb-3">
+                    <label for="marca">Marca:</label>
+                    <select name="marca" id="marca" class="form-control">
+                        <option value="">Todas las marcas</option>
+                        {% for marca in marcas %}
+                        <option value="{{ marca.id }}" {% if filtros.marca_id == marca.id|stringformat:"i" %}selected{% endif %}>
+                            {{ marca.Nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filtro por Tipo -->
+                <div class="col-md-2 mb-3">
+                    <label for="tipo">Tipo:</label>
+                    <select name="tipo" id="tipo" class="form-control">
+                        <option value="">Todos los tipos</option>
+                        {% for tipo_value, tipo_label in tipos %}
+                        <option value="{{ tipo_value }}" {% if filtros.tipo == tipo_value %}selected{% endif %}>
+                            {{ tipo_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filtro por Origen -->
+                <div class="col-md-2 mb-3">
+                    <label for="origen">Origen:</label>
+                    <select name="origen" id="origen" class="form-control">
+                        <option value="">Todos los orígenes</option>
+                        {% for origen_value, origen_label in origenes %}
+                        <option value="{{ origen_value }}" {% if filtros.origen == origen_value %}selected{% endif %}>
+                            {{ origen_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filtro por Cliente (solo visible si origen es VENTA) -->
+                <div class="col-md-2 mb-3" id="clienteFilterContainer" style="display: {% if filtros.origen == 'VENTA' %}block{% else %}none{% endif %};">
+                    <label for="cliente">Cliente:</label>
+                    <select name="cliente" id="cliente" class="form-control">
+                        <option value="">Todos los clientes</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}" {% if filtros.cliente_id == cliente.id|stringformat:"i" %}selected{% endif %}>
+                            {{ cliente.Nombre }} {% if cliente.Apellido %}{{ cliente.Apellido }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filtro por Fecha Desde -->
+                <div class="col-md-2 mb-3">
+                    <label for="fecha_desde">Fecha Desde:</label>
+                    <input type="date" name="fecha_desde" id="fecha_desde" class="form-control" value="{{ filtros.fecha_desde }}">
+                </div>
+                
+                <!-- Filtro por Fecha Hasta -->
+                <div class="col-md-2 mb-3">
+                    <label for="fecha_hasta">Fecha Hasta:</label>
+                    <input type="date" name="fecha_hasta" id="fecha_hasta" class="form-control" value="{{ filtros.fecha_hasta }}">
+                </div>
+                
+                <!-- Botones -->
+                <div class="col-md-2 mb-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary mr-2">
+                        <i class="fas fa-search mr-1"></i> Filtrar
+                    </button>
+                    <a href="{% url 'historial_movimientos' %}" class="btn btn-secondary">
+                        <i class="fas fa-sync-alt mr-1"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tabla de Movimientos -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-primary text-white d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold">
+                <i class="fas fa-list mr-2"></i>Movimientos de Stock
+            </h6>
+            <div>
+                <button class="btn btn-light btn-sm mr-2" id="exportarPDF">
+                    <i class="fas fa-file-pdf mr-1"></i> Exportar a PDF
+                </button>
+                <button class="btn btn-light btn-sm" id="exportarExcel">
+                    <i class="fas fa-file-excel mr-1"></i> Exportar a Excel
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="tabla-movimientos" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Producto</th>
+                            <th>Tipo</th>
+                            <th>Cantidad</th>
+                            <th>Stock Anterior</th>
+                            <th>Stock Resultante</th>
+                            <th>Origen</th>
+                            <th>Detalle</th>
+                            <th>Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimiento in movimientos %}
+                        <tr>
+                            <td>{{ movimiento.Fecha|date:"d/m/Y H:i" }}</td>
+                            <td>{{ movimiento.Producto.Nombre }}</td>
+                            <td>
+                                {% if movimiento.Tipo == 'ENTRADA' %}
+                                <span class="badge badge-success">{{ movimiento.get_Tipo_display }}</span>
+                                {% else %}
+                                <span class="badge badge-danger">{{ movimiento.get_Tipo_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ movimiento.Cantidad }}</td>
+                            <td>{{ movimiento.StockAnterior }}</td>
+                            <td>{{ movimiento.StockResultante }}</td>
+                            <td>{{ movimiento.get_OrigenMovimiento_display }}</td>
+                            <td>{{ movimiento.Detalle }}</td>
+                            <td>{{ movimiento.Usuario.username|default:"Sistema" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center">No se encontraron movimientos de stock</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if movimientos.has_other_pages %}
+            <div class="pagination justify-content-center mt-4">
+                <ul class="pagination">
+                    {% if movimientos.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in filtros.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">&laquo; Primera</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ movimientos.previous_page_number }}{% for key, value in filtros.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Anterior</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo; Primera</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">Anterior</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for i in movimientos.paginator.page_range %}
+                        {% if movimientos.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }} <span class="sr-only">(actual)</span></span>
+                        </li>
+                        {% elif i > movimientos.number|add:'-3' and i < movimientos.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}{% for key, value in filtros.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if movimientos.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ movimientos.next_page_number }}{% for key, value in filtros.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Siguiente</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ movimientos.paginator.num_pages }}{% for key, value in filtros.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Última &raquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Siguiente</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">Última &raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // Mostrar/ocultar filtro de cliente según el origen seleccionado
+        $('#origen').change(function() {
+            if ($(this).val() === 'VENTA') {
+                $('#clienteFilterContainer').show();
+            } else {
+                $('#clienteFilterContainer').hide();
+                $('#cliente').val('');
+            }
+        });
+        
+        // Inicializar DataTable con botones de exportación
+        var table = $('#tabla-movimientos').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json"
+            },
+            "paging": false,
+            "info": false,
+            "searching": false,
+            "order": [[0, 'desc']],
+            "dom": 'Bfrtip',
+            "buttons": [
+                {
+                    extend: 'excel',
+                    text: 'Excel',
+                    className: 'buttons-excel hidden-button',
+                    title: 'Historial de Movimientos de Stock',
+                    exportOptions: {
+                        columns: ':visible'
+                    }
+                },
+                {
+                    extend: 'pdfHtml5',
+                    text: 'PDF',
+                    className: 'buttons-pdf hidden-button',
+                    title: 'Historial de Movimientos de Stock',
+                    orientation: 'landscape',
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    customize: function(doc) {
+                        // Personalizar el PDF
+                        doc.defaultStyle.fontSize = 8;
+                        doc.styles.tableHeader.fontSize = 9;
+                        doc.styles.tableHeader.alignment = 'center';
+                        
+                        // Agregar encabezado con logo y título
+                        doc.content.splice(0, 1, {
+                            margin: [0, 0, 0, 12],
+                            alignment: 'center',
+                            text: 'HISTORIAL DE MOVIMIENTOS DE STOCK',
+                            style: {
+                                fontSize: 14,
+                                bold: true
+                            }
+                        });
+                        
+                        // Agregar pie de página con fecha
+                        var now = new Date();
+                        var jsDate = now.getDate() + '/' + (now.getMonth() + 1) + '/' + now.getFullYear();
+                        doc['footer'] = (function(page, pages) {
+                            return {
+                                columns: [
+                                    {
+                                        alignment: 'left',
+                                        text: ['Fecha de generación: ', { text: jsDate }]
+                                    },
+                                    {
+                                        alignment: 'right',
+                                        text: ['Página ', { text: page.toString() }, ' de ', { text: pages.toString() }]
+                                    }
+                                ],
+                                margin: [20, 0]
+                            }
+                        });
+                    }
+                }
+            ]
+        });
+        
+        // Exportar a Excel
+        $('#exportarExcel').on('click', function() {
+            table.button('.buttons-excel').trigger();
+        });
+        
+        // Exportar a PDF
+        $('#exportarPDF').on('click', function() {
+            console.log('Botón PDF clickeado');
+            table.button('.buttons-pdf').trigger();
+        });
+        
+        // Si no hay fechas establecidas, establecer fechas predeterminadas
+        if (!$('#fecha_desde').val()) {
+            // Establecer fecha desde (un mes atrás)
+            var fechaDesde = new Date();
+            fechaDesde.setMonth(fechaDesde.getMonth() - 1);
+            $('#fecha_desde').val(fechaDesde.toISOString().split('T')[0]);
+        }
+        
+        if (!$('#fecha_hasta').val()) {
+            // Establecer fecha hasta (hoy)
+            var fechaHasta = new Date();
+            $('#fecha_hasta').val(fechaHasta.toISOString().split('T')[0]);
+        }
+    });
+</script>
+
+<style>
+    .hidden-button {
+        display: none;
+    }
+</style>
+{% endblock %}
