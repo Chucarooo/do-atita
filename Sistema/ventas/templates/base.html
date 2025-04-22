@@ -118,7 +118,19 @@
                 <p>Clientes</p>
               </a>
             </li>
-
+            <li class="nav-header">INVENTARIO</li>
+            <li class="nav-item">
+              <a href="{% url 'Productos' %}" class="nav-link">
+                <i class="nav-icon fas fa-boxes"></i>
+                <p>Productos</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'historial_movimientos' %}" class="nav-link">
+                <i class="nav-icon fas fa-exchange-alt"></i>
+                <p>Movimientos de Stock</p>
+              </a>
+            </li>
             <li class="nav-header">COMPRAS</li>
             <li class="nav-item">
               <a href="{% url 'compras' %}" class="nav-link">
@@ -149,26 +161,9 @@
             </li>
             {% endif %}
 
-            <li class="nav-header">INVENTARIO</li>
-            <li class="nav-item">
-              <a href="{% url 'Productos' %}" class="nav-link">
-                <i class="nav-icon fas fa-boxes"></i>
-                <p>Productos</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="{% url 'historial_movimientos' %}" class="nav-link">
-                <i class="nav-icon fas fa-exchange-alt"></i>
-                <p>Movimientos de Stock</p>
-              </a>
-            </li>
             
-            <li class="nav-item">
-              <a href="{% url 'Categorias' %}" class="nav-link">
-                <i class="nav-icon fas fa-tags"></i>
-                <p>Categorías</p>
-              </a>
-            </li>
+            
+            
           </ul>
         </nav>
         <!-- /.sidebar-menu -->

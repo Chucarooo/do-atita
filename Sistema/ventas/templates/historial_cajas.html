@@ -205,9 +205,9 @@
         if (confirm('¿Está seguro que desea forzar el cierre de esta caja? Esta acción no se puede deshacer.')) {
             const id = $(this).data('id');
             
-            // Aquí iría la lógica para forzar el cierre mediante AJAX
+            // Usar la URL generada por Django
             $.ajax({
-                url: '/forzar-cierre-caja/' + id + '/',
+                url: "{% url 'forzar_cierre_caja' 0 %}".replace('0', id),
                 type: 'POST',
                 data: {
                     csrfmiddlewaretoken: '{{ csrf_token }}'

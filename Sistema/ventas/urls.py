@@ -28,6 +28,7 @@ urlpatterns = [
     path('imprimir_ticket/<int:venta_id>/', views.imprimir_ticket_view, name='imprimir_ticket'),
     path('historial-cajas/', views.historial_cajas_view, name='historial_cajas'),
     path('detalle-caja/<int:caja_id>/', views.detalle_caja_view, name='detalle_caja'),
+    path('forzar-cierre-caja/<int:caja_id>/', views.forzar_cierre_caja_view, name='forzar_cierre_caja'),
     path('guardar-cliente-ajax/', views.guardar_cliente_ajax, name='guardar_cliente_ajax'),
     path('historial-movimientos/', views.historial_movimientos, name='historial_movimientos'),
     path('ajustes/', views.lista_ajustes, name='lista_ajustes'),

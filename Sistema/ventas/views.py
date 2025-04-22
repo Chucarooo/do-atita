@@ -1783,38 +1783,50 @@ def obtener_pagos_compra(request):
 @login_required
 def ajuste_stock_view(request):
     if request.method == 'POST':
-        form = MovimientoStockForm(request.POST)
-        if form.is_valid():
-            movimiento = form.save(commit=False)
-            producto = movimiento.Producto
-            movimiento.StockAnterior = producto.Cantidad
-            movimiento.Usuario = request.user
-            
+        try:
+            id_producto = request.POST.get('id_producto')
+            tipo_movimiento = request.POST.get('tipo_movimiento')
+            cantidad = Decimal(request.POST.get('cantidad', 0))
+            motivo = request.POST.get('motivo')
+
+            if not all([id_producto, tipo_movimiento, cantidad, motivo]):
+                return JsonResponse({'success': False, 'error': 'Faltan datos requeridos'})
+
+            producto = Producto.objects.get(id=id_producto)
+            stock_anterior = producto.Cantidad
+
             # Actualizar el stock del producto
-            if movimiento.Tipo == 'ENTRADA':
-                producto.Cantidad += movimiento.Cantidad
+            if tipo_movimiento == 'ENTRADA':
+                producto.Cantidad += cantidad
             else:  # SALIDA
-                if producto.Cantidad < movimiento.Cantidad:
-                    messages.error(request, 'No hay suficiente stock disponible')
-                    return redirect('ajuste_stock')
-                producto.Cantidad -= movimiento.Cantidad
-            
-            movimiento.StockResultante = producto.Cantidad
-            
+                if producto.Cantidad < cantidad:
+                    return JsonResponse({'success': False, 'error': 'No hay suficiente stock disponible'})
+                producto.Cantidad -= cantidad
+
+            # Crear el movimiento de stock
+            movimiento = MovimientoStock.objects.create(
+                Producto=producto,
+                Tipo=tipo_movimiento,
+                Cantidad=cantidad,
+                StockAnterior=stock_anterior,
+                StockResultante=producto.Cantidad,
+                OrigenMovimiento='AJUSTE',
+                Usuario=request.user,
+                Observaciones=motivo
+            )
+
             # Guardar los cambios en una transacción
             with transaction.atomic():
                 movimiento.save()
                 producto.save()
-            
-            messages.success(request, 'Ajuste de stock registrado correctamente')
-            return redirect('historial_movimientos')
+
+            return JsonResponse({'success': True})
+        except Producto.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Producto no encontrado'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
     else:
-        form = MovimientoStockForm()
-    
-    return render(request, 'ventas/ajuste_stock.html', {
-        'form': form,
-        'titulo': 'Ajuste de Stock'
-    })
+        return JsonResponse({'success': False, 'error': 'Método no permitido'})
 
 @login_required
 def dashboard_view(request):
@@ -2097,6 +2109,46 @@ def imprimir_ticket_en_pos58(venta, detalles, pagos):
                 
     except Exception as e:
         print(f"Error al imprimir el ticket: {e}")
+
+@staff_member_required
+@csrf_exempt
+def forzar_cierre_caja_view(request, caja_id):
+    """Vista para forzar el cierre de una caja (solo para superusuarios)"""
+    if request.method == 'POST':
+        try:
+            caja = Caja.objects.get(id=caja_id, Estado='ABIERTA')
+            
+            # Calcular el saldo final según el sistema
+            saldo_inicial = caja.SaldoInicial
+            total_efectivo = caja.GetTotalEfectivo()
+            saldo_final_sistema = saldo_inicial + total_efectivo
+            
+            # Forzar el cierre con el saldo del sistema como saldo real
+            caja.CerrarCaja(
+                saldo_final_real=saldo_final_sistema,
+                observaciones="Cierre forzado por administrador"
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Caja cerrada exitosamente'
+            })
+            
+        except Caja.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'La caja no existe o ya está cerrada'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Método no permitido'
+    })
 
 
 

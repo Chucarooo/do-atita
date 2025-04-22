@@ -469,6 +469,45 @@
     </div>
 </div>
 
+<!-- Modal Actualizar Stock -->
+<div class="modal fade" id="ActualizarStockModal" tabindex="-1" role="dialog" aria-labelledby="ActualizarStockModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark" id="ActualizarStockModalLabel">Actualizar Stock</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <div class="alert alert-info">
+                    <strong>Producto:</strong> <span id="nombre_producto_stock"></span><br>
+                    <strong>Stock Actual:</strong> <span id="stock_actual"></span>
+                </div>
+                <form id="formActualizarStock" onsubmit="return false;">
+                    <input type="hidden" id="id_producto_stock" name="id_producto_stock">
+                    <div class="form-group">
+                        <label for="tipo_movimiento">Tipo de Movimiento</label>
+                        <select class="form-control" id="tipo_movimiento" name="tipo_movimiento" required>
+                            <option value="ENTRADA">Entrada</option>
+                            <option value="SALIDA">Salida</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cantidad">Cantidad</label>
+                        <input type="number" class="form-control" id="cantidad" name="cantidad" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="motivo">Motivo</label>
+                        <textarea class="form-control" id="motivo" name="motivo" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmarActualizacionStock()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-12">
         <h3 class="text-center">Productos <i class="fas fa-boxes"></i></h3>
@@ -488,6 +527,7 @@
                         <th>Marca</th>
                         <th>Categoría</th>
                         <th>Cantidad</th>
+                        <th>Precio de Contado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -498,14 +538,16 @@
                         <td>{{ producto.Marca }}</td>
                         <td>{{ producto.Categoria }}</td>
                         <td>{{ producto.Cantidad|floatformat:0 }}</td>
+                        <td>${{ producto.PrecioDeContado|floatformat:2 }}</td>
                         <td>
-                            <button onclick="editarProducto('{{ producto.id }}')"
-                                class="btn btn-dark-outline btn-sm">
+                            <button type="button" class="btn btn-dark-outline btn-sm" data-action="editar" data-id="{{ producto.id }}" title="Editar producto">
                                 <img src="{% static 'index/img/editar.png' %}" alt="Editar" width="30">
                             </button>
-                            <button onclick="eliminarProducto({{ producto.id }})"
-                                class="btn btn-dark-outline btn-sm">
+                            <button type="button" class="btn btn-dark-outline btn-sm" data-action="eliminar" data-id="{{ producto.id }}" title="Eliminar producto">
                                 <img src="{% static 'index/img/delete.png' %}" alt="Eliminar" width="30">
+                            </button>
+                            <button type="button" class="btn btn-info btn-sm" data-action="stock" data-id="{{ producto.id }}" title="Actualizar stock">
+                                <i class="fas fa-exchange-alt" style="font-size: 20px;"></i>
                             </button>
                         </td>
                     </tr>
@@ -606,6 +648,24 @@
             } else if ($(this).hasClass('PrecioDeContado')) {
                 // Si se modifica el precio de contado, marcar como modificado manualmente
                 $(this).data('modificadoManualmente', true);
+            }
+        });
+
+        // Manejadores de eventos para los botones de acción
+        $('button[data-action]').on('click', function() {
+            const action = $(this).data('action');
+            const id = $(this).data('id');
+            
+            switch(action) {
+                case 'editar':
+                    editarProducto(id);
+                    break;
+                case 'eliminar':
+                    eliminarProducto(id);
+                    break;
+                case 'stock':
+                    actualizarStock(id);
+                    break;
             }
         });
     });
@@ -1183,6 +1243,78 @@
                     title: 'Error',
                     text: errorMessage
                 });
+            }
+        });
+    }
+
+    function actualizarStock(id) {
+        // Obtener los datos del producto
+        $.ajax({
+            url: '{% url "get_producto" %}',
+            type: 'GET',
+            data: { 'id': id },
+            success: function(response) {
+                if (response.success) {
+                    const producto = response.producto;
+                    $('#id_producto_stock').val(id);
+                    $('#nombre_producto_stock').text(producto.Nombre);
+                    $('#stock_actual').text(producto.Cantidad);
+                    
+                    // Resetear el formulario
+                    $('#formActualizarStock')[0].reset();
+                    
+                    // Mostrar el modal
+                    $('#ActualizarStockModal').modal('show');
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No se pudo cargar la información del producto'
+                    });
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error al comunicarse con el servidor'
+                });
+            }
+        });
+    }
+
+    function confirmarActualizacionStock() {
+        const id = $('#id_producto_stock').val();
+        const tipo = $('#tipo_movimiento').val();
+        const cantidad = $('#cantidad').val();
+        const motivo = $('#motivo').val();
+
+        if (!id || !tipo || !cantidad || !motivo) {
+            alert('Por favor complete todos los campos');
+            return;
+        }
+
+        $.ajax({
+            url: "{% url 'ajuste_stock' %}",
+            type: 'POST',
+            data: {
+                'id_producto': id,
+                'tipo_movimiento': tipo,
+                'cantidad': cantidad,
+                'motivo': motivo,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('Stock actualizado correctamente');
+                    $('#ActualizarStockModal').modal('hide');
+                    location.reload();
+                } else {
+                    alert('Error al actualizar el stock: ' + response.error);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('Error al actualizar el stock: ' + error);
             }
         });
     }
