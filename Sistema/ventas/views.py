@@ -1319,7 +1319,10 @@ def compras_view(request):
             compra.ImporteTotal = total
             compra.save()
             
-            return JsonResponse({'success': True})
+            return JsonResponse({
+                'success': True,
+                'compra_id': compra.id
+            })
             
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -1445,7 +1448,15 @@ def actualizar_pago_compra(request):
             form = PagoCompraForm(form_data)
             if form.is_valid():
                 pago = form.save(commit=False)  # No guardamos aún
-                pago.save()  # Ahora sí guardamos para que se ejecute el método save()
+                
+                # Actualizar el estado de la compra
+                compra.Estado = 'PAGADA'
+                compra.MedioDePago_id = request.POST.get('medio_pago')
+                compra.FechaPago = request.POST.get('fecha_pago')
+                compra.save()
+                
+                # Ahora sí guardamos el pago
+                pago.save()
                 
                 return JsonResponse({'success': True})
             else:

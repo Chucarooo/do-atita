@@ -114,9 +114,6 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <h4 class="mb-0">Total: $<span id="total">0.00</span></h4>
                             <div>
-                                <button type="button" class="btn btn-primary" onclick="mostrarModalPago()">
-                                    <i class="fas fa-dollar-sign"></i> Pagar
-                                </button>
                                 <button type="button" class="btn btn-success" onclick="guardarCompra()">
                                     <i class="fas fa-save"></i> Guardar Compra
                                 </button>
@@ -299,37 +296,53 @@
             });
             return;
         }
+
+        // Obtener el total de la compra
+        const total = parseFloat(document.getElementById('total').textContent);
         
-        // Crear campos ocultos para el pago
-        const form = document.getElementById('compraForm');
-        let medioPagoInput = form.querySelector('input[name="medio_pago"]');
-        let fechaPagoInput = form.querySelector('input[name="fecha_pago"]');
+        // Crear el objeto de datos para el pago
+        const formData = new FormData();
+        formData.append('compra_id', compraIdActual);
+        formData.append('medio_pago', medioPago);
+        formData.append('monto', total);
+        formData.append('fecha_pago', fechaPago);
         
-        if (!medioPagoInput) {
-            medioPagoInput = document.createElement('input');
-            medioPagoInput.type = 'hidden';
-            medioPagoInput.name = 'medio_pago';
-            form.appendChild(medioPagoInput);
-        }
-        
-        if (!fechaPagoInput) {
-            fechaPagoInput = document.createElement('input');
-            fechaPagoInput.type = 'hidden';
-            fechaPagoInput.name = 'fecha_pago';
-            form.appendChild(fechaPagoInput);
-        }
-        
-        // Asignar valores
-        medioPagoInput.value = medioPago;
-        fechaPagoInput.value = fechaPago;
-        
-        pagoRegistrado = true;
-        modalPago.hide();
-        
-        Swal.fire({
-            icon: 'success',
-            title: 'Éxito',
-            text: 'Pago registrado exitosamente'
+        // Enviar la solicitud para registrar el pago
+        fetch('{% url "actualizar_pago_compra" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Éxito',
+                    text: 'Pago registrado exitosamente'
+                }).then(() => {
+                    // Cerrar el modal
+                    modalPago.hide();
+                    // Recargar la página para mostrar los cambios
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.error || 'Error al registrar el pago'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al registrar el pago'
+            });
         });
     }
 
@@ -358,26 +371,8 @@
 
         const formData = new FormData(document.getElementById('compraForm'));
         
-        // Establecer el estado según si se registró el pago
-        formData.append('estado', pagoRegistrado ? 'PAGADA' : 'PENDIENTE');
-        
-        // Agregar datos del pago si se registró
-        if (pagoRegistrado) {
-            const medioPago = document.getElementById('medio_pago').value;
-            const fechaPago = document.getElementById('fecha_pago').value;
-            
-            if (!medioPago || !fechaPago) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Atención',
-                    text: 'Debe completar todos los campos del pago'
-                });
-                return;
-            }
-            
-            formData.append('medio_pago', medioPago);
-            formData.append('fecha_pago', fechaPago);
-        }
+        // Establecer el estado como PENDIENTE inicialmente
+        formData.append('estado', 'PENDIENTE');
         
         fetch('{% url "compras" %}', {
             method: 'POST',
@@ -389,12 +384,29 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Guardar el ID de la compra
+                compraIdActual = data.compra_id;
+                
                 Swal.fire({
                     icon: 'success',
                     title: 'Éxito',
-                    text: 'Compra guardada exitosamente'
-                }).then(() => {
-                    window.location.reload();
+                    text: 'Compra guardada exitosamente',
+                    showDenyButton: true,
+                    showCancelButton: true,
+                    confirmButtonText: 'Registrar Pago',
+                    denyButtonText: 'Ver Lista de Compras',
+                    cancelButtonText: 'Cerrar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Mostrar modal de pago
+                        modalPago.show();
+                    } else if (result.isDenied) {
+                        // Redirigir a lista de compras
+                        window.location.href = "{% url 'lista_compras' %}";
+                    } else {
+                        // Recargar la página
+                        window.location.reload();
+                    }
                 });
             } else {
                 Swal.fire({

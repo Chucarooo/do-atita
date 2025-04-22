@@ -78,30 +78,30 @@
                 <table class="table table-striped table-hover table-sm" id="tabla-compras">
                     <thead class="table-primary sticky-top">
                         <tr>
-                            <th>#</th>
-                            <th>Fecha</th>
-                            <th>Proveedor</th>
-                            <th>Total</th>
-                            <th>Estado</th>
-                            <th>Fecha Pago</th>
+                            <th class="sortable" onclick="ordenarTabla(0, 'number')"># <i class="fas fa-sort"></i></th>
+                            <th class="sortable" onclick="ordenarTabla(1, 'date')">Fecha <i class="fas fa-sort"></i></th>
+                            <th class="sortable" onclick="ordenarTabla(2, 'string')">Proveedor <i class="fas fa-sort"></i></th>
+                            <th class="sortable" onclick="ordenarTabla(3, 'number')">Total <i class="fas fa-sort"></i></th>
+                            <th class="sortable" onclick="ordenarTabla(4, 'string')">Estado <i class="fas fa-sort"></i></th>
+                            <th class="sortable" onclick="ordenarTabla(5, 'date')">Fecha Pago <i class="fas fa-sort"></i></th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tabla-compras-body">
                         {% for compra in compras %}
                         <tr>
                             <td>{{ compra.id }}</td>
-                            <td>{{ compra.Fecha|date:"d/m/Y" }}</td>
+                            <td data-sort="{{ compra.Fecha|date:'Y-m-d' }}">{{ compra.Fecha|date:"d/m/Y" }}</td>
                             <td>{{ compra.Proveedor.RazonSocial }}</td>
-                            <td>${{ compra.ImporteTotal }}</td>
-                            <td>
+                            <td data-sort="{{ compra.ImporteTotal }}">${{ compra.ImporteTotal }}</td>
+                            <td data-sort="{{ compra.Estado }}">
                                 {% if compra.Estado == 'PENDIENTE' %}
                                     <span class="badge bg-warning">Pendiente</span>
                                 {% else %}
                                     <span class="badge bg-success">Pagada</span>
                                 {% endif %}
                             </td>
-                            <td>{{ compra.FechaPago|date:"d/m/Y"|default:"-" }}</td>
+                            <td data-sort="{{ compra.FechaPago|date:'Y-m-d'|default:'9999-12-31' }}">{{ compra.FechaPago|date:"d/m/Y"|default:"-" }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-info" onclick="verDetalles({{ compra.id }})">
@@ -346,30 +346,33 @@
 </div>
 
 <!-- Modal de Pago -->
-<div class="modal fade" id="modalPago" tabindex="-1" aria-labelledby="modalPagoLabel" aria-hidden="true">
+<div class="modal fade" id="modalPagos" tabindex="-1" aria-labelledby="modalPagosLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalPagoLabel">
+                <h5 class="modal-title" id="modalPagosLabel">
                     <i class="fas fa-dollar-sign"></i> Registrar Pago
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="pagoForm">
+                <form id="formPago">
                     {% csrf_token %}
+                    <input type="hidden" id="compra_id_pago" name="compra_id">
+                    
                     <div class="mb-3">
-                        <label for="medio_pago" class="form-label">Medio de Pago:</label>
-                        <select id="medio_pago" name="medio_pago" class="form-control" required>
-                            <option value="">Seleccione medio de pago</option>
+                        <label for="medio_pago" class="form-label">Medio de pago:</label>
+                        <select class="form-control" id="medio_pago" name="medio_pago" required>
+                            <option value="">Seleccione un medio de pago</option>
                             {% for medio in medios_pago %}
                                 <option value="{{ medio.id }}">{{ medio.Nombre }}</option>
                             {% endfor %}
                         </select>
                     </div>
+                    
                     <div class="mb-3">
-                        <label for="fecha_pago" class="form-label">Fecha de Pago:</label>
-                        <input type="date" id="fecha_pago" name="fecha_pago" class="form-control" required>
+                        <label for="fecha_pago" class="form-label">Fecha de pago:</label>
+                        <input type="date" class="form-control" id="fecha_pago" name="fecha_pago" required>
                     </div>
                 </form>
             </div>
@@ -380,61 +383,6 @@
                 <button type="button" class="btn btn-primary" onclick="registrarPago()">
                     <i class="fas fa-check"></i> Registrar Pago
                 </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalPagos" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Registrar pago</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="formPago" method="post" action="{% url 'actualizar_pago_compra' %}">
-                    {% csrf_token %}
-                    <input type="hidden" id="compra_id_pago" name="compra_id">
-                    
-                    <div class="form-group">
-                        <label>Importe total: <span id="importe_total_pago"></span></label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Total pagado: <span id="total_pagado"></span></label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Saldo pendiente: <span id="saldo_pendiente"></span></label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="monto">Monto a pagar:</label>
-                        <input type="number" class="form-control" id="monto" name="monto" step="0.01" min="0" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="medio_pago">Medio de pago:</label>
-                        <select class="form-control" id="medio_pago" name="medio_pago" required>
-                            <option value="">Seleccione un medio de pago</option>
-                            {% for medio in medios_pago %}
-                                <option value="{{ medio.id }}">{{ medio.Nombre }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-success">Registrar pago</button>
-                </form>
-                
-                <hr>
-                
-                <h5>Historial de pagos</h5>
-                <div id="historial_pagos">
-                    <!-- Aquí se cargarán los pagos dinámicamente -->
-                </div>
             </div>
         </div>
     </div>
@@ -467,6 +415,21 @@
         background-color: rgba(0, 123, 255, 0.1);
     }
     
+    /* Estilo para encabezados ordenables */
+    th.sortable {
+        cursor: pointer;
+        position: relative;
+    }
+    
+    th.sortable i {
+        margin-left: 5px;
+        opacity: 0.5;
+    }
+    
+    th.sortable:hover i {
+        opacity: 1;
+    }
+    
     /* Animación para filtros */
     .collapse {
         transition: all 0.3s ease;
@@ -476,13 +439,18 @@
 <script>
     let modalDetalles;
     let modalEdicion;
-    let modalPago;
+    let modalPagos;
     let compraIdActual = null;
+
+    let ordenActual = {
+        columna: null,
+        direccion: 'asc'
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
         modalDetalles = new bootstrap.Modal(document.getElementById('detallesModal'));
         modalEdicion = new bootstrap.Modal(document.getElementById('modalEdicion'));
-        modalPago = new bootstrap.Modal(document.getElementById('modalPago'));
+        modalPagos = new bootstrap.Modal(document.getElementById('modalPagos'));
         
         // Establecer la fecha actual en el campo de fecha de pago
         const fechaActual = new Date().toISOString().split('T')[0];
@@ -685,179 +653,77 @@
     }
 
     function mostrarModalPago(compraId) {
-        // Cargar información de la compra y sus pagos
-        fetch(`{% url 'obtener_pagos_compra' %}?compra_id=${compraId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('compra_id_pago').value = compraId;
-                    document.getElementById('importe_total_pago').textContent = `$${data.importe_total}`;
-                    document.getElementById('total_pagado').textContent = `$${data.total_pagado}`;
-                    document.getElementById('saldo_pendiente').textContent = `$${data.saldo_pendiente}`;
-                    document.getElementById('monto').value = data.saldo_pendiente;
-                    
-                    // Cargar historial de pagos
-                    const historialDiv = document.getElementById('historial_pagos');
-                    historialDiv.innerHTML = '';
-                    
-                    if (data.pagos.length > 0) {
-                        const tabla = document.createElement('table');
-                        tabla.className = 'table table-sm';
-                        
-                        tabla.innerHTML = `
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Medio de pago</th>
-                                    <th>Monto</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${data.pagos.map(pago => `
-                                    <tr>
-                                        <td>${pago.fecha}</td>
-                                        <td>${pago.medio_pago}</td>
-                                        <td>$${pago.monto}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        `;
-                        
-                        historialDiv.appendChild(tabla);
-                    } else {
-                        historialDiv.innerHTML = '<p>No hay pagos registrados</p>';
-                    }
-                    
-                    $('#modalPagos').modal('show');
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Error al cargar los pagos: ' + data.error
-                    });
+        document.getElementById('compra_id_pago').value = compraId;
+        
+        // Establecer la fecha actual por defecto
+        const fechaActual = new Date().toISOString().split('T')[0];
+        document.getElementById('fecha_pago').value = fechaActual;
+        
+        // Limpiar y resetear el select de medio de pago
+        const medioPagoSelect = document.getElementById('medio_pago');
+        medioPagoSelect.value = '';
+        
+        modalPagos.show();
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Error al cargar los pagos'
-                });
-            });
+            }
+        }
+        return cookieValue;
     }
 
     function registrarPago() {
-        if (!compraIdActual) {
+        const medioPago = document.getElementById('medio_pago').value;
+        const fechaPago = document.getElementById('fecha_pago').value;
+        const compraId = document.getElementById('compra_id_pago').value;
+        const csrfToken = getCookie('csrftoken');
+
+        if (!compraId) {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'No se ha seleccionado una compra'
+                text: 'No se encontró el ID de la compra'
             });
             return;
         }
 
-        // Obtener los detalles de la compra primero
-        fetch(`{% url 'obtener_detalles_compra' %}?compra_id=${compraIdActual}`)
-            .then(response => response.json())
-            .then(detallesData => {
-                if (detallesData.success) {
-                    const formData = new FormData(document.getElementById('pagoForm'));
-                    formData.append('compra_id', compraIdActual);
-                    
-                    // Agregar los detalles de la compra al formData
-                    detallesData.detalles.forEach((detalle, index) => {
-                        formData.append(`producto[]`, detalle.producto_id);
-                        formData.append(`cantidad[]`, detalle.cantidad);
-                        formData.append(`precio[]`, detalle.precio_unitario);
-                    });
-                    
-                    fetch('{% url "actualizar_pago_compra" %}', {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Error en la respuesta del servidor');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data && data.success) {
-                            modalPago.hide();
-                            window.location.href = "{% url 'lista_compras' %}";
-                        } else {
-                            throw new Error(data?.error || 'Error desconocido');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: error.message || 'Error al registrar el pago'
-                        });
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Error al obtener los detalles de la compra: ' + detallesData.error
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Error al obtener los detalles de la compra'
-                });
+        if (!medioPago) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Atención',
+                text: 'Debe seleccionar un medio de pago'
             });
-    }
-
-    function guardarEdicion() {
-        const formData = new FormData(document.getElementById('formEdicion'));
-        const estado = document.getElementById('estado_edicion').value.toUpperCase();
-        formData.set('estado', estado);
-        
-        // Obtener todos los detalles de la tabla
-        const filas = document.querySelectorAll("#tabla-detalles-edicion tbody tr");
-        filas.forEach((fila, index) => {
-            const producto = fila.querySelector('select[name="producto[]"]').value;
-            const cantidad = fila.querySelector('input[name="cantidad[]"]').value;
-            const precio = fila.querySelector('input[name="precio[]"]').value;
-            
-            // Agregar los detalles al formData incluso si están deshabilitados
-            formData.append(`producto[]`, producto);
-            formData.append(`cantidad[]`, cantidad);
-            formData.append(`precio[]`, precio);
-        });
-
-        // Si está pagada, asegurarse de incluir los datos del pago
-        if (estado === 'PAGADA') {
-            const medioPago = document.getElementById('medio_pago_edicion').value;
-            const fechaPago = document.getElementById('fecha_pago_edicion').value;
-            
-            if (!medioPago || !fechaPago) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Atención',
-                    text: 'Debe completar todos los campos del pago'
-                });
-                return;
-            }
+            return;
         }
+
+        if (!fechaPago) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Atención',
+                text: 'Debe seleccionar una fecha de pago'
+            });
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('compra_id', compraId);
+        formData.append('medio_pago', medioPago);
+        formData.append('fecha_pago', fechaPago);
         
-        fetch('{% url "editar_compra" %}', {
+        fetch('{% url "actualizar_pago_compra" %}', {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': csrfToken
             }
         })
         .then(response => response.json())
@@ -866,137 +732,73 @@
                 Swal.fire({
                     icon: 'success',
                     title: 'Éxito',
-                    text: data.stock_actualizado ? 'Compra actualizada exitosamente.\nStock actualizado.' : 'Compra actualizada exitosamente.'
+                    text: 'Pago registrado exitosamente'
                 }).then(() => {
-                    modalEdicion.hide();
-                    location.reload();
+                    modalPagos.hide();
+                    window.location.reload();
                 });
             } else {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Error al actualizar la compra: ' + data.error
+                    text: data.error || 'Error al registrar el pago'
                 });
             }
         })
         .catch(error => {
-            console.error('Error:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Error al actualizar la compra'
+                text: 'Error al registrar el pago'
             });
         });
     }
 
-    function eliminarCompra(compraId) {
-        Swal.fire({
-            title: '¿Está seguro?',
-            text: 'Esta acción eliminará la compra y actualizará el stock de los productos.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch('{% url "eliminar_compra" %}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ compra_id: compraId })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Éxito',
-                            text: data.stock_actualizado ? 'Compra eliminada exitosamente.\nStock actualizado.' : 'Compra eliminada exitosamente.'
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Error al eliminar la compra: ' + data.error
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Error al eliminar la compra'
-                    });
-                });
+    function ordenarTabla(columna, tipo) {
+        const tbody = document.getElementById('tabla-compras-body');
+        const filas = Array.from(tbody.getElementsByTagName('tr'));
+        
+        // Cambiar dirección si es la misma columna
+        if (ordenActual.columna === columna) {
+            ordenActual.direccion = ordenActual.direccion === 'asc' ? 'desc' : 'asc';
+        } else {
+            ordenActual.columna = columna;
+            ordenActual.direccion = 'asc';
+        }
+        
+        // Actualizar iconos de ordenamiento
+        const encabezados = document.querySelectorAll('th.sortable');
+        encabezados.forEach((th, index) => {
+            const icono = th.querySelector('i');
+            if (index === columna) {
+                icono.className = ordenActual.direccion === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+            } else {
+                icono.className = 'fas fa-sort';
             }
         });
+        
+        // Ordenar filas
+        filas.sort((a, b) => {
+            let valorA = a.cells[columna].getAttribute('data-sort') || a.cells[columna].textContent;
+            let valorB = b.cells[columna].getAttribute('data-sort') || b.cells[columna].textContent;
+            
+            if (tipo === 'number') {
+                valorA = parseFloat(valorA.replace(/[^0-9.-]+/g, ''));
+                valorB = parseFloat(valorB.replace(/[^0-9.-]+/g, ''));
+            } else if (tipo === 'date') {
+                valorA = new Date(valorA);
+                valorB = new Date(valorB);
+            }
+            
+            if (ordenActual.direccion === 'asc') {
+                return valorA > valorB ? 1 : -1;
+            } else {
+                return valorA < valorB ? 1 : -1;
+            }
+        });
+        
+        // Reordenar filas en la tabla
+        filas.forEach(fila => tbody.appendChild(fila));
     }
-
-    // Agregar event listener para mostrar/ocultar campos de pago según el estado
-    document.getElementById('estado_edicion').addEventListener('change', function() {
-        const camposPago = document.getElementById('campos_pago_edicion');
-        const btnAgregarProducto = document.querySelector('#modalEdicion .btn-success');
-        const detallesInputs = document.querySelectorAll('#tabla-detalles-edicion select, #tabla-detalles-edicion input');
-        const botonesEliminar = document.querySelectorAll('#tabla-detalles-edicion .btn-danger');
-        
-        if (this.value.toUpperCase() === 'PAGADA') {
-            camposPago.style.display = 'block';
-            btnAgregarProducto.style.display = 'none';
-            
-            // Deshabilitar campos de detalles
-            detallesInputs.forEach(input => input.disabled = true);
-            botonesEliminar.forEach(btn => btn.style.display = 'none');
-            
-            // Mostrar notificación
-            Swal.fire({
-                icon: 'info',
-                title: 'Información',
-                text: 'La compra está pagada. No se pueden modificar los detalles de productos.'
-            });
-        } else {
-            camposPago.style.display = 'none';
-            btnAgregarProducto.style.display = 'block';
-            
-            // Habilitar campos de detalles
-            detallesInputs.forEach(input => input.disabled = false);
-            botonesEliminar.forEach(btn => btn.style.display = 'block');
-        }
-    });
-
-    // Filtrado dinámico en tiempo real
-    document.addEventListener('DOMContentLoaded', function() {
-        const searchInput = document.getElementById('search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                const rows = document.querySelectorAll('#tabla-compras tbody tr');
-                
-                rows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    if (text.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-        }
-        
-        // Inicializar datepickers con formato español si está usando Bootstrap Datepicker
-        if ($.fn.datepicker) {
-            $('.datepicker').datepicker({
-                format: 'dd/mm/yyyy',
-                language: 'es',
-                autoclose: true
-            });
-        }
-    });
 </script>
-{% endblock %} 
+{% endblock %}
