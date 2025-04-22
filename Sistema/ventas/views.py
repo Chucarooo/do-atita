@@ -227,26 +227,64 @@ def add_producto_view(request):
             messages.error(request, "Error en el formulario. Verifique los datos ingresados.")
     return redirect('Productos')
 
-def edit_producto_view(request):
-    if request.method == "POST":
-        producto_id = request.POST.get('id_producto_editar')
-        producto = get_object_or_404(Producto, pk=producto_id)
-        form = EditProductoForm(request.POST, request.FILES, instance=producto)
-        if form.is_valid():
-            try:
+@login_required
+def EditProducto(request):
+    if request.method == 'POST':
+        try:
+            producto_id = request.POST.get('id_producto_editar')
+            if not producto_id:
+                return JsonResponse({'success': False, 'error': 'No se proporcionó ID de producto'})
+            
+            producto = Producto.objects.get(id=producto_id)
+            
+            # Actualizar los campos del producto
+            producto.Nombre = request.POST.get('Nombre')
+            producto.Marca_id = request.POST.get('Marca')
+            producto.Categoria_id = request.POST.get('Categoria')
+            producto.CodigoDeBarras = request.POST.get('CodigoDeBarras')
+            producto.PrecioCosto = request.POST.get('PrecioCosto')
+            producto.PrecioDeLista = request.POST.get('PrecioDeLista')
+            producto.PrecioDeContado = request.POST.get('PrecioDeContado')
+            producto.Cantidad = request.POST.get('Cantidad')
+            producto.CantidadMinimaSugerida = request.POST.get('CantidadMinimaSugerida')
+            producto.UnidadDeMedida_id = request.POST.get('UnidadDeMedida')
+            producto.FechaUltimaModificacion = request.POST.get('FechaUltimaModificacion')
+            
+            producto.save()
+            
+            messages.success(request, 'Producto actualizado correctamente')
+            return JsonResponse({'success': True})
+            
+        except Producto.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Producto no encontrado'})
+        except Exception as e:
+            if form.is_valid():
                 form.save()
-                messages.success(request, "Producto modificado exitosamente.")
-            except Exception as e:
-                messages.error(request, f"Error al modificar el producto: {str(e)}")
-        else:
-            messages.error(request, "Error en el formulario. Verifique los datos ingresados.")
-    return redirect('Productos')
+                messages.success(request, 'Producto actualizado correctamente')
+                return redirect('productos')
+            else:
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
+                return redirect('productos')
+                
+        except Producto.DoesNotExist:
+            messages.error(request, 'Producto no encontrado')
+            return redirect('productos')
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el producto: {str(e)}')
+            return redirect('productos')
+    return redirect('productos')
 
 def delete_producto_view(request):
-    producto = Producto.objects.get(pk=request.POST.get('id_producto_eliminar'))
-    producto.delete()
-    messages.success(request, "Producto eliminado exitosamente.")
-    return redirect('Productos')
+    try:
+        producto = Producto.objects.get(pk=request.POST.get('id_producto_eliminar'))
+        producto.delete()
+        return JsonResponse({'success': True, 'message': 'Producto eliminado exitosamente.'})
+    except Producto.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'El producto no existe.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 @login_required
 def categorias_view(request):
@@ -1119,32 +1157,35 @@ def get_unidades(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 # Función para obtener datos de un producto
+@login_required
 def get_producto(request):
-    try:
-        producto_id = request.GET.get('id')
-        producto = Producto.objects.get(pk=producto_id)
-        
-        data = {
-            'Nombre': producto.Nombre,
-            'Descripcion': producto.Descripcion,
-            'Marca': producto.Marca.id if producto.Marca else None,
-            'Proveedor': producto.Proveedor.id if producto.Proveedor else None,
-            'categoria': producto.SubCategoria.Categoria.id if producto.SubCategoria else None,
-            'SubCategoria': producto.SubCategoria.id if producto.SubCategoria else None,
-            'PrecioCosto': float(producto.PrecioCosto),
-            'PrecioDeLista': float(producto.PrecioDeLista),
-            'PrecioDeContado': float(producto.PrecioDeContado),
-            'Cantidad': float(producto.Cantidad),
-            'CantidadMinimaSugerida': float(producto.CantidadMinimaSugerida),
-            'UnidadDeMedida': producto.UnidadDeMedida.id if producto.UnidadDeMedida else None,
-            'FechaUltimaModificacion': producto.FechaUltimaModificacion.strftime('%Y-%m-%d') if producto.FechaUltimaModificacion else None
-        }
-        
-        return JsonResponse({'success': True, 'producto': data})
-    except Producto.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Producto no encontrado'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+    if request.method == 'GET':
+        try:
+            producto_id = request.GET.get('id')
+            if not producto_id:
+                return JsonResponse({'success': False, 'error': 'No se proporcionó ID de producto'})
+                
+            producto = Producto.objects.get(id=producto_id)
+            # Convertir el producto a diccionario
+            producto_dict = {
+                'id': producto.id,
+                'Nombre': producto.Nombre,
+                'Marca': producto.Marca.id if producto.Marca else None,
+                'Categoria': producto.Categoria.id if producto.Categoria else None,
+                'CodigoDeBarras': producto.CodigoDeBarras,
+                'PrecioCosto': str(producto.PrecioCosto),
+                'PrecioDeLista': str(producto.PrecioDeLista),
+                'PrecioDeContado': str(producto.PrecioDeContado),
+                'Cantidad': producto.Cantidad,
+                'CantidadMinimaSugerida': producto.CantidadMinimaSugerida,
+                'FechaUltimaModificacion': producto.FechaUltimaModificacion.strftime('%Y-%m-%d') if producto.FechaUltimaModificacion else None,
+            }
+            return JsonResponse({'success': True, 'producto': producto_dict})
+        except Producto.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Producto no encontrado'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
 
 # Función para agregar marcas
 def add_marca_view(request):

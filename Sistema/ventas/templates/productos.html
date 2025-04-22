@@ -12,32 +12,618 @@
 <link rel="stylesheet" href="{% static 'index/css/b4.css' %}">
 <script src="{% static 'index/js/b4.js' %}"></script>
 
+<!-- Modal para Agregar Producto -->
+<div id="AgregarProductoModal" class="modal" data-backdrop="static" data-keyboard="false" style="overflow: scroll;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nuevo producto</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="display: none;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form method="POST" action="{% url 'AddProducto' %}" enctype="multipart/form-data" id="formAgregarProducto" autocomplete="off">{% csrf_token %}
+                    <!-- Información Básica -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Información Básica</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for field in form_producto %}
+                                    {% if field.name == 'Nombre' or field.name == 'Marca' or  field.name == 'CodigoDeBarras' %}
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        <div class="input-group">
+                                            {{ field|add_class:"form-control text-dark" }}
+                                            {% if field.name == 'Marca' %}
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarMarcaModal">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                            
+                                        </div>
+                                        {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clasificación -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Clasificación</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                    <label for="{{ form_producto.Categoria.id_for_label }}">{{ form_producto.Categoria.label }}</label>
+                                        <div class="input-group">
+                                        {{ form_producto.Categoria|add_class:"form-control text-dark" }}
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarCategoriaModal">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% for error in form_producto.Categoria.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                    </div>
+                    <!-- Precios -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Precios</h5>
+                            <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#ConfigurarPorcentajesModal">
+                                <i class="fas fa-cog"></i> Configurar Porcentajes
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for field in form_producto %}
+                                    {% if field.name == 'PrecioCosto' or field.name == 'PrecioDeLista' or field.name == 'PrecioDeContado' %}
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">$</span>
+                                            </div>
+                                            {{ field|add_class:"form-control text-dark precio-input"|add_class:field.name }}
+                                        </div>
+                                        {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                                {% for field in form_producto %}
+                                    {% if field.name == 'FechaUltimaModificacion' %}
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field|add_class:"form-control text-dark"|attr:"type:date" }}
+                                        {% for error in field.errors %}
+                                        <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventario -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Inventario</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_Cantidad">Cantidad en Stock:</label>
+                                    <input type="number" step="0.01" class="form-control text-dark" id="id_Cantidad" name="Cantidad">
+                                            </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_CantidadMinimaSugerida">Cantidad Mínima Sugerida:</label>
+                                    <input type="number" step="0.01" class="form-control text-dark" id="id_CantidadMinimaSugerida" name="CantidadMinimaSugerida">
+                                        </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% for error in form.non_field_errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endfor %}
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-success">
+                    Agregar
+                </button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Categoría -->
+<div id="AgregarCategoriaModal" class="modal" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nueva categoría</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formCategoria">{% csrf_token %}
+                    <div class="form-group">
+                        <label for="nombreCategoria">Nombre de la categoría</label>
+                        <input type="text" class="form-control" id="nombreCategoria" name="Nombre" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarCategoria()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Marca -->
+<div id="AgregarMarcaModal" class="modal" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nueva marca</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formMarca" onsubmit="return false;">{% csrf_token %}
+                    <div class="form-group">
+                        <label for="nombreMarca">Nombre de la marca</label>
+                        <input type="text" class="form-control" id="nombreMarca" name="Nombre" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarMarca()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Proveedor -->
+<div id="AgregarProveedorModal" class="modal" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nuevo proveedor</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formProveedor">{% csrf_token %}
+                    <div class="form-group">
+                        <label for="razonSocial">Razón Social</label>
+                        <input type="text" class="form-control" id="razonSocial" name="RazonSocial" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cuit">CUIT</label>
+                        <input type="text" class="form-control" id="cuit" name="CUIT" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono">Teléfono</label>
+                        <input type="text" class="form-control" id="telefono" name="Tel" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" class="form-control" id="email" name="Email">
+                    </div>
+                    <div class="form-group">
+                        <label for="direccion">Dirección</label>
+                        <input type="text" class="form-control" id="direccion" name="Direccion">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarProveedor()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Unidad de Medida -->
+<div id="AgregarUnidadModal" class="modal" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Agregar nueva unidad de medida</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formUnidad">{% csrf_token %}
+                    <div class="form-group">
+                        <label for="nombreUnidad">Nombre de la unidad de medida</label>
+                        <input type="text" class="form-control" id="nombreUnidad" name="Nombre" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarUnidad()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Configurar Porcentajes -->
+<div id="ConfigurarPorcentajesModal" class="modal" data-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Configurar Porcentajes de Precios</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form id="formPorcentajes">
+                    <div class="form-group">
+                        <label for="porcentajeContado">Porcentaje para Precio de Contado</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="porcentajeContado" value="30" min="0" max="100">
+                            <div class="input-group-append">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="porcentajeLista">Porcentaje para Precio de Lista</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="porcentajeLista" value="40" min="0" max="100">
+                            <div class="input-group-append">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarPorcentajes()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Producto -->
+<div id="EditarProductoModal" class="modal" style="overflow: scroll;" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Editar producto</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="display: none;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <form method="POST" action="{% url 'EditProducto' %}" enctype="multipart/form-data" id="formEditarProducto" onsubmit="return false;">{% csrf_token %}
+                    <input type="hidden" id="id_producto_editar" name="id_producto_editar">
+                    
+                    <!-- Información Básica -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Información Básica</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                    <label for="id_Nombre">Nombre del Producto:</label>
+                                    <input type="text" class="form-control text-dark" id="id_Nombre" name="Nombre">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_Marca">Marca:</label>
+                                        <div class="input-group">
+                                        <select class="form-control text-dark" id="id_Marca" name="Marca">
+                                            <option value="">---------</option>
+                                        </select>
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarMarcaModal">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_CodigoDeBarras">Código de Barras:</label>
+                                    <input type="text" class="form-control text-dark" id="id_CodigoDeBarras" name="CodigoDeBarras">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clasificación -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Clasificación</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                    <label for="id_Categoria">Categoría:</label>
+                                        <div class="input-group">
+                                        <select class="form-control text-dark" id="id_Categoria" name="Categoria">
+                                            <option value="">---------</option>
+                                        </select>
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarCategoriaModal">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Precios -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Precios</h5>
+                            <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#ConfigurarPorcentajesModal">
+                                <i class="fas fa-cog"></i> Configurar Porcentajes
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                    <label for="id_PrecioCosto">Precio de Costo:</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">$</span>
+                                            </div>
+                                        <input type="number" step="0.01" class="form-control text-dark precio-input PrecioCosto" id="id_PrecioCosto" name="PrecioCosto">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                    <label for="id_PrecioDeLista">Precio de Lista:</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">$</span>
+                                    </div>
+                                        <input type="number" step="0.01" class="form-control text-dark precio-input PrecioDeLista" id="id_PrecioDeLista" name="PrecioDeLista">
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="id_PrecioDeContado">Precio de Contado:</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">$</span>
+                                        </div>
+                                        <input type="number" step="0.01" class="form-control text-dark precio-input PrecioDeContado" id="id_PrecioDeContado" name="PrecioDeContado">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventario -->
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Inventario</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_Cantidad">Cantidad en Stock:</label>
+                                    <input type="number" step="0.01" class="form-control text-dark" id="id_Cantidad" name="Cantidad">
+                                            </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_CantidadMinimaSugerida">Cantidad Mínima Sugerida:</label>
+                                    <input type="number" step="0.01" class="form-control text-dark" id="id_CantidadMinimaSugerida" name="CantidadMinimaSugerida">
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+            </div>
+            <div class="modal-footer bg-dark">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-success" onclick="guardarEdicionProducto()">
+                    Guardar cambios
+                </button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="EliminarProductoModal" class="modal" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-dark">Eliminar producto</h5>
+            </div>
+            <div class="modal-body bg-dark text-white">
+                <p class="labelmodal">¿Estás seguro que deseas eliminar este producto?</p>
+                <form id="formEliminarProducto">{% csrf_token %}
+                    <input type="hidden" id="id_producto_eliminar" name="id_producto_eliminar">
+                </form>
+            </div>
+            <div class="modal-footer bg-dark text-white">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    Volver
+                </button>
+                <button type="button" class="btn btn-success" onclick="confirmarEliminacion()">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <h3 class="text-center">Productos <i class="fas fa-boxes"></i></h3>
+        <div class="col-md-3 pb-2">
+            <a href="#AgregarProductoModal" data-toggle="modal" data-dismiss="modal">
+                <button type="button" class="btn btn-success">
+                    Agregar Producto
+                    <i class="fas fa-plus-circle"></i>
+                </button>
+            </a>
+        </div>
+        <div class="card card-body" style="overflow:scroll">
+            <table class="table table-hover table-primary" id="myTable">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Marca</th>
+                        <th>Categoría</th>
+                        <th>Cantidad</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="text-dark">
+                    {% for producto in productos %}
+                    <tr>
+                        <td>{{ producto.Nombre }}</td>
+                        <td>{{ producto.Marca }}</td>
+                        <td>{{ producto.Categoria }}</td>
+                        <td>{{ producto.Cantidad|floatformat:0 }}</td>
+                        <td>
+                            <button onclick="editarProducto('{{ producto.id }}')"
+                                class="btn btn-dark-outline btn-sm">
+                                <img src="{% static 'index/img/editar.png' %}" alt="Editar" width="30">
+                            </button>
+                            <button onclick="eliminarProducto({{ producto.id }})"
+                                class="btn btn-dark-outline btn-sm">
+                                <img src="{% static 'index/img/delete.png' %}" alt="Eliminar" width="30">
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
 <script>
-    let productos = productos || [];
+    // Variables globales
+    let productos = [];
     let porcentajeContado = 30;
     let porcentajeLista = 40;
+    let codigoBarrasIngresado = false;
+    let modalAbierto = false;
 
-    $.ajaxSetup({
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    });
+    // Función para inicializar el scanner
+    function initBarcodeScanner() {
+        const codigoBarrasInput = $('#id_CodigoDeBarras');
+        if (codigoBarrasInput.length === 0) return;
+        
+        // Hacer que el input sea editable
+        codigoBarrasInput.prop('readonly', false);
 
-    function actualizarSelectGenerico(url, selector, nombreProp = 'Nombre') {
-        $.ajax({
-            url: url,
-            success: function(data) {
-                const select = $(selector);
-                const currentValue = select.val();
-                select.empty().append('<option value="">---------</option>');
-                const key = Object.keys(data)[0];
-                data[key].forEach(item => {
-                    select.append(`<option value="${item.id}">${item[nombreProp]}</option>`);
-                });
-                if (currentValue) select.val(currentValue);
+        // Enfocar el input al abrir el modal
+        $('#AgregarProductoModal').on('shown.bs.modal', function() {
+            modalAbierto = true;
+            // Enfocar el input después de un pequeño retraso para asegurar que el modal esté completamente visible
+            setTimeout(() => {
+                codigoBarrasInput.focus();
+            }, 100);
+        });
+
+        // Manejar el cierre del modal
+        $('#AgregarProductoModal').on('hidden.bs.modal', function() {
+            modalAbierto = false;
+            codigoBarrasIngresado = false;
+        });
+
+        // Capturar el Enter
+        codigoBarrasInput.off('keydown').on('keydown', function(e) {
+            if (e.which === 13) { // Enter
+                e.preventDefault();
+                e.stopPropagation();
+                codigoBarrasIngresado = true;
+                return false;
             }
         });
+
+        // Prevenir el envío del formulario solo si hay código de barras y no se ha ingresado
+        $('#formAgregarProducto').off('submit').on('submit', function(e) {
+            const codigoBarras = codigoBarrasInput.val();
+            if (codigoBarras && !codigoBarrasIngresado) {
+                e.preventDefault();
+                e.stopPropagation();
+                codigoBarrasIngresado = true;
+                return false;
+            }
+        });
+
+        // Resetear la bandera cuando el campo pierde el foco
+        codigoBarrasInput.off('blur').on('blur', function() {
+            if (!modalAbierto) {
+                codigoBarrasIngresado = false;
+            }
+        });
+
+        // Manejar el click en el modal
+        $('#AgregarProductoModal').off('click').on('click', function(e) {
+            // Si el click es en el fondo del modal, enfocar el input
+            if ($(e.target).is('#AgregarProductoModal')) {
+                codigoBarrasInput.focus();
+            }
+        });
+    }
+
+    // Inicializar cuando el documento esté listo
+    $(document).ready(function() {
+        initBarcodeScanner();
+
+        // Agregar event listeners para los campos de precio
+        $('.precio-input').on('input', function() {
+            const precioCosto = $('.PrecioCosto').val();
+            const precioLista = $('.PrecioDeLista').val();
+            const precioContado = $('.PrecioDeContado').val();
+
+            if ($(this).hasClass('PrecioCosto')) {
+                // Si se modifica el precio de costo, calcular los otros precios
+                calcularPrecios(precioCosto);
+            } else if ($(this).hasClass('PrecioDeLista')) {
+                // Si se modifica el precio de lista, marcar como modificado manualmente
+                $(this).data('modificadoManualmente', true);
+            } else if ($(this).hasClass('PrecioDeContado')) {
+                // Si se modifica el precio de contado, marcar como modificado manualmente
+                $(this).data('modificadoManualmente', true);
+            }
+        });
+    });
+
+    function calcularPrecios(precioCosto) {
+        const costo = parseFloat(precioCosto);
+        if (!isNaN(costo)) {
+            const precioContado = $('.PrecioDeContado');
+            const precioLista = $('.PrecioDeLista');
+            
+            // Solo actualizar si no han sido modificados manualmente
+            if (!precioContado.data('modificadoManualmente')) {
+                precioContado.val((costo * (1 + porcentajeContado / 100)).toFixed(2));
+            }
+            if (!precioLista.data('modificadoManualmente')) {
+                precioLista.val((costo * (1 + porcentajeLista / 100)).toFixed(2));
+            }
+        }
     }
 
     function guardarPorcentajes() {
@@ -49,19 +635,6 @@
         Swal.fire({ icon: 'success', title: 'Éxito', text: 'Porcentajes actualizados', timer: 1500 });
     }
 
-    function calcularPrecios(precioCosto) {
-        const costo = parseFloat(precioCosto);
-        if (!isNaN(costo)) {
-            const precioContado = $('.PrecioDeContado');
-            const precioLista = $('.PrecioDeLista');
-            if (!precioContado.data('modificadoManualmente')) {
-                precioContado.val((costo * (1 + porcentajeContado / 100)).toFixed(2));
-            }
-            if (!precioLista.data('modificadoManualmente')) {
-                precioLista.val((costo * (1 + porcentajeLista / 100)).toFixed(2));
-            }
-        }
-    }
     function guardarMarca() {
         var nombreMarca = document.getElementById('nombreMarca').value.trim();
         
@@ -367,585 +940,251 @@
         });
     }
 
-    $(document).ready(function() {
-        $('#formAgregarProducto').on('submit', function(e) {
-            e.preventDefault();
-            const nombre = $('#id_Nombre').val().trim();
-            const marca = $('#id_Marca').val();
-            const categoria = $('#id_categoria').val();
-            const precioCosto = $('#id_PrecioCosto').val();
-            const cantidad = $('#id_Cantidad').val();
-            if (!nombre || !marca || !categoria || !precioCosto || !cantidad) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Complete todos los campos' });
-                return;
-            }
-            const formData = new FormData(this);
+    function editarProducto(id) {
+        // Cerrar cualquier modal abierto
+        $('.modal').modal('hide');
+        
+        // Cargar las opciones de los select
+        Promise.all([
+            // Cargar marcas
             $.ajax({
-                url: '{% url "AddProducto" %}',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire({ icon: 'success', title: 'Agregado', text: 'Producto agregado correctamente', timer: 1500 })
-                        .then(() => location.reload());
-                    } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: response.message || 'Error al agregar producto' });
-                    }
+                url: '{% url "get_marcas" %}',
+                type: 'GET',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            }),
+            // Cargar categorías
+            $.ajax({
+                url: '{% url "get_categorias" %}',
+                type: 'GET',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+        ]).then(function([marcasResponse, categoriasResponse]) {
+            // Llenar el select de marcas
+            const marcaSelect = $('#EditarProductoModal #id_Marca');
+            marcaSelect.empty().append('<option value="">---------</option>');
+            if (marcasResponse.marcas) {
+                marcasResponse.marcas.forEach(function(marca) {
+                    marcaSelect.append(`<option value="${marca.id}">${marca.Nombre}</option>`);
+                });
+            }
+
+            // Llenar el select de categorías
+            const categoriaSelect = $('#EditarProductoModal #id_Categoria');
+            categoriaSelect.empty().append('<option value="">---------</option>');
+            if (categoriasResponse.categorias) {
+                categoriasResponse.categorias.forEach(function(categoria) {
+                    categoriaSelect.append(`<option value="${categoria.id}">${categoria.Nombre}</option>`);
+                });
+            }
+
+            // Obtener los datos del producto
+            return $.ajax({
+                url: '{% url "get_producto" %}',
+                type: 'GET',
+                data: {
+                    'id': id
                 },
-                error: function() {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar con el servidor' });
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
                 }
             });
-        });
+        }).then(function(response) {
+            if (response.success) {
+                const producto = response.producto;
+                
+                // Establecer el ID del producto en el campo hidden del formulario de edición
+                $('#EditarProductoModal #id_producto_editar').val(id);
+                
+                // Llenar los campos del formulario de edición con los datos del producto
+                for (const [key, value] of Object.entries(producto)) {
+                    const input = $('#EditarProductoModal #id_' + key);
+                    if (input.length) {
+                        if (input.is('select')) {
+                            input.val(value).trigger('change');
+                        } else {
+                            input.val(value);
+                        }
+                    }
+                }
+                
+                // Abrir el modal de edición
+                $('#EditarProductoModal').modal('show');
 
-        $('.PrecioCosto').on('input', function() { calcularPrecios(this.value); });
-        $('.PrecioDeContado, .PrecioDeLista').on('input', function() {
-            $(this).data('modificadoManualmente', true);
-        });
+                // Prevenir que la lectora de código de barras cierre el modal
+                $('#EditarProductoModal').off('keydown').on('keydown', function(e) {
+                    if (e.which === 13) { // Enter
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                });
 
-        const today = new Date().toISOString().split('T')[0];
-        $('input[name="FechaUltimaModificacion"]').val(today);
+                // Prevenir el envío del formulario con Enter
+                $('#formEditarProducto').off('keypress').on('keypress', function(e) {
+                    if (e.which === 13) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: response.error || 'No se pudo cargar los datos del producto'
+                });
+            }
+        }).catch(function(error) {
+            console.error('Error en la llamada AJAX:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al comunicarse con el servidor: ' + error
+            });
+        });
+    }
+    
+    // Modificar el evento de cierre del modal para resetear el formulario
+    $('#AgregarProductoModal').on('hidden.bs.modal', function() {
+        // Resetear el formulario
+        $('#formAgregarProducto')[0].reset();
+        
+        // Remover el campo hidden del ID
+        $('#id_producto_editar').remove();
+        
+        // Restaurar el título y action originales
+        $('#AgregarProductoModal .modal-title').text('Agregar nuevo producto');
+        $('#formAgregarProducto').attr('action', '{% url "AddProducto" %}');
     });
-</script>
 
-<!-- Modal para Agregar Producto -->
-<div id="AgregarProductoModal" class="modal" data-backdrop="static" data-keyboard="false" style="overflow: scroll;">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-info">
-                <h5 class="modal-title text-dark">Agregar nuevo producto</h5>
-            </div>
-            <div class="modal-body bg-dark text-white">
-                <form method="POST" action="{% url 'AddProducto' %}" enctype="multipart/form-data" id="formAgregarProducto">{% csrf_token %}
-                    <!-- Información Básica -->
-                    <div class="card bg-secondary mb-3">
-                        <div class="card-header">
-                            <h5 class="mb-0">Información Básica</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                {% for field in form_producto %}
-                                    {% if field.name == 'Nombre' or field.name == 'Marca' or  field.name == 'CodigoDeBarras' %}
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        <div class="input-group">
-                                            {{ field|add_class:"form-control text-dark" }}
-                                            {% if field.name == 'Marca' %}
-                                            <div class="input-group-append">
-                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarMarcaModal">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
-                                            {% endif %}
-                                            
-                                        </div>
-                                        {% for error in field.errors %}
-                                        <small class="text-danger">{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
+    function guardarEdicionProducto() {
+        const formData = new FormData(document.getElementById('formEditarProducto'));
+        
+        $.ajax({
+            url: '{% url "EditProducto" %}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: 'Producto actualizado correctamente',
+                        timer: 1500
+                    }).then(() => {
+                        // Recargar la página para mostrar los cambios
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.error || 'Error al actualizar el producto'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error en la llamada AJAX:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error al comunicarse con el servidor: ' + error
+                });
+            }
+        });
+    }
 
-                    <!-- Clasificación -->
-                    <div class="card bg-secondary mb-3">
-                        <div class="card-header">
-                            <h5 class="mb-0">Clasificación</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                    <label for="{{ form_producto.Categoria.id_for_label }}">{{ form_producto.Categoria.label }}</label>
-                                        <div class="input-group">
-                                        {{ form_producto.Categoria|add_class:"form-control text-dark" }}
-                                            <div class="input-group-append">
-                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarCategoriaModal">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    {% for error in form_producto.Categoria.errors %}
-                                        <small class="text-danger">{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                    </div>
-                    <!-- Precios -->
-                    <div class="card bg-secondary mb-3">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Precios</h5>
-                            <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#ConfigurarPorcentajesModal">
-                                <i class="fas fa-cog"></i> Configurar Porcentajes
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                {% for field in form_producto %}
-                                    {% if field.name == 'PrecioCosto' or field.name == 'PrecioDeLista' or field.name == 'PrecioDeContado' %}
-                                    <div class="col-md-4 mb-3">
-                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text">$</span>
-                                            </div>
-                                            {{ field|add_class:"form-control text-dark precio-input"|add_class:field.name }}
-                                        </div>
-                                        {% for error in field.errors %}
-                                        <small class="text-danger">{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                                {% for field in form_producto %}
-                                    {% if field.name == 'FechaUltimaModificacion' %}
-                                    <div class="col-md-4 mb-3">
-                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        {{ field|add_class:"form-control text-dark"|attr:"type:date" }}
-                                        {% for error in field.errors %}
-                                        <small class="text-danger">{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
+    function eliminarProducto(id) {
+        console.log('ID del producto a eliminar:', id); // Para debugging
+        // Establecer el ID del producto en el campo hidden
+        $('#id_producto_eliminar').val(id);
+        // Abrir el modal de eliminación
+        $('#EliminarProductoModal').modal('show');
+    }
 
-                    <!-- Inventario -->
-                    <div class="card bg-secondary mb-3">
-                        <div class="card-header">
-                            <h5 class="mb-0">Inventario</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                    {% for field in form_producto %}
-                                    {% if field.name == 'Cantidad' or field.name == 'CantidadMinimaSugerida' or field.name == 'UnidadDeMedida' %}
-                                    <div class="col-md-4 mb-3">
-                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        <div class="input-group">
-                                            {{ field|add_class:"form-control text-dark" }}
-                                            {% if field.name == 'UnidadDeMedida' %}
-                                            <div class="input-group-append">
-                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarUnidadModal">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                    {% for error in field.errors %}
-                                        <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                                    </div>
-                                    {% endif %}
-                    {% endfor %}
-                            </div>
-                        </div>
-                    </div>
+    function confirmarEliminacion() {
+        const id = $('#id_producto_eliminar').val();
+        console.log('ID confirmado:', id);
+        
+        if (!id) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se proporcionó ID de producto'
+            });
+            return;
+        }
 
-                    {% for error in form.non_field_errors %}
-                    <div class="alert alert-danger">{{ error }}</div>
-                    {% endfor %}
-            </div>
-            <div class="modal-footer bg-dark">
-                <button type="button" class="btn btn-danger" data-dismiss="modal">
-                    Cancelar
-                </button>
-                <button type="submit" class="btn btn-success">
-                    Agregar
-                </button>
-            </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para Agregar Categoría -->
-<div id="AgregarCategoriaModal" class="modal" data-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-info">
-                <h5 class="modal-title text-dark">Agregar nueva categoría</h5>
-            </div>
-            <div class="modal-body bg-dark text-white">
-                <form id="formCategoria">{% csrf_token %}
-                    <div class="form-group">
-                        <label for="nombreCategoria">Nombre de la categoría</label>
-                        <input type="text" class="form-control" id="nombreCategoria" name="Nombre" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer bg-dark">
-                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" onclick="guardarCategoria()">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para Agregar Marca -->
-<div id="AgregarMarcaModal" class="modal" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-info">
-                <h5 class="modal-title text-dark">Agregar nueva marca</h5>
-            </div>
-            <div class="modal-body bg-dark text-white">
-                <form id="formMarca" onsubmit="return false;">{% csrf_token %}
-                    <div class="form-group">
-                        <label for="nombreMarca">Nombre de la marca</label>
-                        <input type="text" class="form-control" id="nombreMarca" name="Nombre" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer bg-dark">
-                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" onclick="guardarMarca()">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para Agregar Proveedor -->
-<div id="AgregarProveedorModal" class="modal" data-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-info">
-                <h5 class="modal-title text-dark">Agregar nuevo proveedor</h5>
-            </div>
-            <div class="modal-body bg-dark text-white">
-                <form id="formProveedor">{% csrf_token %}
-                    <div class="form-group">
-                        <label for="razonSocial">Razón Social</label>
-                        <input type="text" class="form-control" id="razonSocial" name="RazonSocial" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="cuit">CUIT</label>
-                        <input type="text" class="form-control" id="cuit" name="CUIT" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="telefono">Teléfono</label>
-                        <input type="text" class="form-control" id="telefono" name="Tel" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" class="form-control" id="email" name="Email">
-                    </div>
-                    <div class="form-group">
-                        <label for="direccion">Dirección</label>
-                        <input type="text" class="form-control" id="direccion" name="Direccion">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer bg-dark">
-                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" onclick="guardarProveedor()">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para Agregar Unidad de Medida -->
-<div id="AgregarUnidadModal" class="modal" data-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-info">
-                <h5 class="modal-title text-dark">Agregar nueva unidad de medida</h5>
-            </div>
-            <div class="modal-body bg-dark text-white">
-                <form id="formUnidad">{% csrf_token %}
-                    <div class="form-group">
-                        <label for="nombreUnidad">Nombre de la unidad de medida</label>
-                        <input type="text" class="form-control" id="nombreUnidad" name="Nombre" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer bg-dark">
-                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" onclick="guardarUnidad()">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para Configurar Porcentajes -->
-<div id="ConfigurarPorcentajesModal" class="modal" data-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-info">
-                <h5 class="modal-title text-dark">Configurar Porcentajes de Precios</h5>
-            </div>
-            <div class="modal-body bg-dark text-white">
-                <form id="formPorcentajes">
-                    <div class="form-group">
-                        <label for="porcentajeContado">Porcentaje para Precio de Contado</label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="porcentajeContado" value="30" min="0" max="100">
-                            <div class="input-group-append">
-                                <span class="input-group-text">%</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="porcentajeLista">Porcentaje para Precio de Lista</label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="porcentajeLista" value="40" min="0" max="100">
-                            <div class="input-group-append">
-                                <span class="input-group-text">%</span>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer bg-dark">
-                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" onclick="guardarPorcentajes()">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para Editar Producto -->
-<div id="EditarProductoModal" class="modal" style="overflow: scroll;">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-info">
-                <h5 class="modal-title text-dark">Editar producto</h5>
-            </div>
-            <div class="modal-body bg-dark text-white">
-                <form method="POST" action="{% url 'EditProducto' %}" enctype="multipart/form-data">{% csrf_token %}
-                    <input type="hidden" id="id_producto_editar" name="id_producto_editar">
+        $.ajax({
+            url: '{% url "DeleteProducto" %}',
+            type: 'POST',
+            data: {
+                'id_producto_eliminar': id,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                try {
+                    // Intentar parsear la respuesta como JSON
+                    const data = typeof response === 'string' ? JSON.parse(response) : response;
                     
-                    <!-- Información Básica -->
-                    <div class="card bg-secondary mb-3">
-                        <div class="card-header">
-                            <h5 class="mb-0">Información Básica</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                {% for field in form_producto %}
-                                    {% if field.name == 'Nombre' or field.name == 'Descripcion' or field.name == 'Marca' or field.name == 'Proveedor' or field.name == 'CodigoDeBarras' %}
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        <div class="input-group">
-                                            {{ field|add_class:"form-control text-dark" }}
-                                            {% if field.name == 'Marca' %}
-                                            <div class="input-group-append">
-                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarMarcaModal">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
-                                            {% endif %}
-                                            
-                                           
-                                        </div>
-                                        {% for error in field.errors %}
-                                        <small class="text-danger">{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Clasificación -->
-                    <div class="card bg-secondary mb-3">
-                        <div class="card-header">
-                            <h5 class="mb-0">Clasificación</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                    <label for="{{ form_producto.Categoria.id_for_label }}">{{ form_producto.Categoria.label }}</label>
-                                        <div class="input-group">
-                                        {{ form_producto.Categoria|add_class:"form-control text-dark" }}
-                                            <div class="input-group-append">
-                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarCategoriaModal">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
-                                            </div>
-                                    {% for error in form_producto.Categoria.errors %}
-                                        <small class="text-danger">{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Precios -->
-                    <div class="card bg-secondary mb-3">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Precios</h5>
-                            <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#ConfigurarPorcentajesModal">
-                                <i class="fas fa-cog"></i> Configurar Porcentajes
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                {% for field in form_producto %}
-                                    {% if field.name == 'PrecioCosto' or field.name == 'PrecioDeLista' or field.name == 'PrecioDeContado' %}
-                                    <div class="col-md-4 mb-3">
-                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        <div class="input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text">$</span>
-                                            </div>
-                                            {{ field|add_class:"form-control text-dark precio-input"|add_class:field.name }}
-                                        </div>
-                                        {% for error in field.errors %}
-                                        <small class="text-danger">{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                                {% for field in form_producto %}
-                                    {% if field.name == 'FechaUltimaModificacion' %}
-                                    <div class="col-md-4 mb-3">
-                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        {{ field|add_class:"form-control text-dark"|attr:"type:date" }}
-                                        {% for error in field.errors %}
-                                        <small class="text-danger">{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Inventario -->
-                    <div class="card bg-secondary mb-3">
-                        <div class="card-header">
-                            <h5 class="mb-0">Inventario</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                {% for field in form_producto %}
-                                    {% if field.name == 'Cantidad' or field.name == 'CantidadMinimaSugerida' or field.name == 'UnidadDeMedida' %}
-                                    <div class="col-md-4 mb-3">
-                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        <div class="input-group">
-                                            {{ field|add_class:"form-control text-dark" }}
-                                            {% if field.name == 'UnidadDeMedida' %}
-                                            <div class="input-group-append">
-                                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#AgregarUnidadModal">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                    {% for error in field.errors %}
-                                        <small class="text-danger">{{ error }}</small>
-                    {% endfor %}
-                                    </div>
-                                    {% endif %}
-                    {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    {% for error in form.non_field_errors %}
-                    <div class="alert alert-danger">{{ error }}</div>
-                    {% endfor %}
-            </div>
-            <div class="modal-footer bg-dark">
-                <button type="button" class="btn btn-danger" data-dismiss="modal">
-                    Cancelar
-                </button>
-                <button type="submit" class="btn btn-success">
-                    Guardar cambios
-                </button>
-            </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div id="EliminarProductoModal" class="modal">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-info">
-                <h5 class="modal-title text-dark">Eliminar producto</h5>
-            </div>
-            <div class="modal-body bg-dark text-white">
-                <p class="labelmodal">¿Estás seguro?</p>
-                <form method="POST" action="{% url 'DeleteProducto' %}">{% csrf_token %}
-                    <input type="hidden" id="id_producto_eliminar" name="id_producto_eliminar">
-            </div>
-            <div class="modal-footer bg-dark text-white">
-                <button type="button" class="btn btn-danger" data-dismiss="modal">
-                    Volver
-                </button>
-                <button type="submit" class="btn btn-success">
-                    Aceptar
-                </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-12">
-        <h3 class="text-center">Productos <i class="fas fa-boxes"></i></h3>
-        <div class="col-md-3 pb-2">
-            <a href="#AgregarProductoModal" data-toggle="modal" data-dismiss="modal">
-                <button type="button" class="btn btn-success">
-                    Agregar Producto
-                    <i class="fas fa-plus-circle"></i>
-                </button>
-            </a>
-        </div>
-        <div class="card card-body" style="overflow:scroll">
-            <table class="table table-hover table-primary" id="myTable">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Marca</th>
-                        <th>Cantidad</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="text-dark">
-                    {% for producto in productos %}
-                    <tr>
-                        <td>{{ producto.Nombre }}</td>
-                        <td>{{ producto.Marca }}</td>
-                        <td>{{ producto.Cantidad|floatformat:0 }}</td>
-                        <td>
-                            <button onclick="editarProducto('{{ producto.id }}')"
-                                class="btn btn-dark-outline btn-sm" data-toggle="modal" href="#EditarProductoModal">
-                                <img src="{% static 'index/img/editar.png' %}" alt="Editar" width="30">
-                            </button>
-                            <button onclick="eliminarProducto('{{ producto.id }}')"
-                                class="btn btn-dark-outline btn-sm" data-toggle="modal" href="#EliminarProductoModal">
-                                <img src="{% static 'index/img/delete.png' %}" alt="Eliminar" width="30">
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-{% if messages %}
-{% for message in messages %}
-<script>
-    Swal.fire({
-        icon: 'success',
-        title: 'Éxito',
-        text: "{{ message }}",
-        timer: 1500
-    });
+                    if (data && data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: 'Producto eliminado correctamente',
+                            timer: 1500
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: (data && data.error) || 'Error al eliminar el producto'
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error al procesar la respuesta:', e);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error al procesar la respuesta del servidor'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error en la llamada AJAX:', error);
+                console.error('Estado:', status);
+                console.error('Respuesta:', xhr.responseText);
+                
+                let errorMessage = 'Error al eliminar el producto';
+                try {
+                    // Intentar extraer el mensaje de error del HTML de respuesta
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(xhr.responseText, 'text/html');
+                    const errorElement = doc.querySelector('.errorlist li, .error');
+                    if (errorElement) {
+                        errorMessage = errorElement.textContent;
+                    }
+                } catch (e) {
+                    console.error('Error al parsear la respuesta de error:', e);
+                }
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMessage
+                });
+            }
+        });
+    }
 </script>
-{% endfor %}
-{% endif %}
 {% endblock %}

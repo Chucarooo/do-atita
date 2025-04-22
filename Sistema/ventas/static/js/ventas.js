@@ -156,16 +156,16 @@ function agregarProducto(id, nombre, precioLista, precioContado, stock) {
 
 // Actualizar carrito
 function actualizarCarrito() {
-    
     let html = '';
     let inputsHidden = '';
     total = 0;
     
-    
-    
     for (let i = 0; i < productos.length; i++) {
         let item = productos[i];
         
+        // Calcular el subtotal actualizado
+        item.subtotal = item.cantidad * item.precioActual;
+        total += item.subtotal;
         
         // Determinar qué clase usar para el botón según el precio actual
         let btnClass = item.usandoPrecioContado ? "btn-success" : "btn-warning";
@@ -200,34 +200,20 @@ function actualizarCarrito() {
             <input type="hidden" name="cantidades" value="${item.cantidad}">
             <input type="hidden" name="precios" value="${item.precioActual}">
         `;
-        
-        total += item.subtotal;
     }
     
     const tbody = document.querySelector('#tablaCarrito tbody');
     if (tbody) {
-       
         tbody.innerHTML = html;
-       
-    } else {
-        console.error("No se encontró el elemento tbody");
     }
     
-    // Actualizar el total y los inputs hidden
+    // Actualizar el total
     const totalVenta = document.getElementById('totalVenta');
     if (totalVenta) {
         totalVenta.textContent = '$' + total.toFixed(2);
-        
-        // Actualizar el monto principal si no hay segundo medio
-        if (!document.getElementById('usar_segundo_medio').checked) {
-            document.getElementById('monto_principal').value = total.toFixed(2);
-            document.getElementById('monto_principal_display').value = total.toFixed(2);
-        } else {
-            // Si hay segundo medio, actualizar según el monto secundario actual
-            actualizarMontoPrincipal();
-        }
     }
     
+    // Actualizar los inputs hidden
     const productosSeleccionados = document.getElementById('productosSeleccionados');
     if (productosSeleccionados) {
         productosSeleccionados.innerHTML = inputsHidden;
@@ -240,21 +226,30 @@ function actualizarCarrito() {
     }
 }
 
+// Función para actualizar el total automáticamente
+function actualizarTotal() {
+    total = 0;
+    productos.forEach(item => {
+        item.subtotal = item.cantidad * item.precioActual;
+        total += item.subtotal;
+    });
+    
+    const totalVenta = document.getElementById('totalVenta');
+    if (totalVenta) {
+        totalVenta.textContent = '$' + total.toFixed(2);
+    }
+}
+
 // Modificar cantidad
 function modificarCantidad(index, cambio) {
     if (index >= 0 && index < productos.length) {
-        let nuevaCantidad = productos[index].cantidad + cambio;
-        let stockDisponible = productos[index].stock;
-        
-        if (nuevaCantidad > stockDisponible) {
-            alert(`No hay suficiente stock disponible. Máximo: ${stockDisponible}`);
-            return;
-        }
-
-        if (nuevaCantidad > 0) {
+        const nuevaCantidad = productos[index].cantidad + cambio;
+        if (nuevaCantidad >= 1 && nuevaCantidad <= productos[index].stock) {
             productos[index].cantidad = nuevaCantidad;
             productos[index].subtotal = productos[index].cantidad * productos[index].precioActual;
             actualizarCarrito();
+        } else if (nuevaCantidad > productos[index].stock) {
+            alert('No hay suficiente stock disponible');
         }
     }
 }
@@ -263,20 +258,13 @@ function modificarCantidad(index, cambio) {
 function actualizarCantidadManual(input, index) {
     if (index >= 0 && index < productos.length) {
         let nuevaCantidad = parseInt(input.value);
-        let stockDisponible = productos[index].stock;
-        
-        if (nuevaCantidad > stockDisponible) {
-            alert(`No hay suficiente stock disponible. Máximo: ${stockDisponible}`);
-            input.value = productos[index].cantidad;
-            return;
-        }
-        
-        if (nuevaCantidad > 0) {
+        if (nuevaCantidad >= 1 && nuevaCantidad <= productos[index].stock) {
             productos[index].cantidad = nuevaCantidad;
             productos[index].subtotal = productos[index].cantidad * productos[index].precioActual;
             actualizarCarrito();
         } else {
             input.value = productos[index].cantidad;
+            alert('La cantidad debe estar entre 1 y ' + productos[index].stock);
         }
     }
 }
@@ -291,6 +279,7 @@ function actualizarPrecio(input, index) {
             actualizarCarrito();
         } else {
             input.value = productos[index].precioActual.toFixed(2);
+            alert('El precio no puede ser negativo');
         }
     }
 }
@@ -627,16 +616,3 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Aquí puedes agregar otros event listeners que necesites
 });
-
-// Al final de la función actualizarTotal()
-function actualizarTotal() {
-    // ... código existente ...
-    
-    // Habilitar o deshabilitar el botón de finalizar venta
-    const btnFinalizarVenta = document.getElementById('btnFinalizarVenta');
-    if (total > 0) {
-        btnFinalizarVenta.disabled = false;
-    } else {
-        btnFinalizarVenta.disabled = true;
-    }
-}
