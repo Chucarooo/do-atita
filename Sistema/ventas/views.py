@@ -356,12 +356,28 @@ def ventas_view(request):
     clientes = Cliente.objects.all()
     medios_pago = MedioDePago.objects.filter(Activo=True)
     
-    ultimo_comprobante = Venta.objects.order_by('-NumeroComprobate').first()
+    # Obtener la fecha actual
+    hoy = timezone.now().date()
+    fecha_str = hoy.strftime('%Y%m%d')
+    
+    # Obtener el último comprobante del día actual
+    inicio_dia = datetime.combine(hoy, time.min)
+    fin_dia = datetime.combine(hoy, time.max)
+    
+    ultimo_comprobante = Venta.objects.filter(
+        Fecha__range=(inicio_dia, fin_dia)
+    ).order_by('-NumeroComprobate').first()
+    
     if ultimo_comprobante:
-        ultimo_numero = int(ultimo_comprobante.NumeroComprobate.split('-')[1])
-        siguiente_numero = f"A-{str(ultimo_numero + 1).zfill(5)}"
+        # Extraer el número secuencial del último comprobante
+        partes = ultimo_comprobante.NumeroComprobate.split('-')
+        if len(partes) == 3:  # Formato A-YYYYMMDD-XXXXX
+            ultimo_numero = int(partes[2])
+        else:  # Formato antiguo A-XXXXX
+            ultimo_numero = int(partes[1])
+        siguiente_numero = f"A-{fecha_str}-{str(ultimo_numero + 1).zfill(5)}"
     else:
-        siguiente_numero = "A-00001"
+        siguiente_numero = f"A-{fecha_str}-{str(1).zfill(5)}"
     
     if request.method == 'POST':
         try:
@@ -398,6 +414,7 @@ def ventas_view(request):
             
             total_venta = sum(float(p['precio']) * int(p['cantidad']) for p in productos_data)
             
+            # Crear la venta con el número de comprobante generado
             venta = Venta.objects.create(
                 NumeroComprobate=siguiente_numero,
                 Cliente_id=cliente_id if cliente_id else None,
@@ -1848,7 +1865,13 @@ def ajuste_stock_view(request):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     else:
-        return JsonResponse({'success': False, 'error': 'Método no permitido'})
+        # Si es GET, mostrar el formulario de ajuste
+        form = MovimientoStockForm()
+        context = {
+            'form': form,
+            'titulo': 'Ajuste de Stock'
+        }
+        return render(request, 'ventas/ajuste_stock.html', context)
 
 @login_required
 def dashboard_view(request):

@@ -82,9 +82,9 @@ function configurarAjax() {
             if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
                 xhr.setRequestHeader("X-CSRFToken", $('input[name=csrfmiddlewaretoken]').val());
             }
-        }
-    });
-}
+            }
+        });
+    }
 
 // =============================================
 // FUNCIONES DE BÚSQUEDA Y FILTRADO
@@ -102,7 +102,7 @@ function filtrarProductos() {
     
     if (/^\d+$/.test(texto) && texto.length >= 8) {
         items.hide();
-    } else {
+        } else {
         items.each(function() {
             const nombre = $(this).find('.col-3').text().toLowerCase();
             $(this).toggle(nombre.includes(texto));
@@ -434,17 +434,21 @@ function finalizarVenta() {
 
 // Función para nueva venta
 function nuevaVenta() {
+    // Limpiar el carrito
     productos = [];
     total = 0;
     actualizarCarrito();
+    
+    // Cerrar el modal
     $('#resultadoVentaModal').modal('hide');
     
+    // Limpiar campos
     $('#cliente_id').val('');
     $('#fecha_comprobante').val(new Date().toISOString().split('T')[0]);
-    $('#numero_comprobante').val('');
     $('#medio_pago_principal').val('');
     $('#monto_principal').val('');
     
+    // Recargar la página para obtener un nuevo número de comprobante
     window.location.href = window.location.pathname;
 }
 

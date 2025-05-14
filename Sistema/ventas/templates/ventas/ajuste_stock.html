@@ -10,7 +10,7 @@
                     <h5 class="mb-0">{{ titulo }}</h5>
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" id="ajusteStockForm">
                         {% csrf_token %}
                         
                         {% if form.errors %}
@@ -44,8 +44,8 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="{{ form.OrigenMovimiento.id_for_label }}">Origen del Movimiento:</label>
-                                    {{ form.OrigenMovimiento }}
+                                    <label>Stock Actual:</label>
+                                    <div id="stock-actual" class="form-control bg-light">Seleccione un producto</div>
                                 </div>
                             </div>
                         </div>
@@ -83,7 +83,54 @@ $(document).ready(function() {
                     $('#stock-actual').text('Stock actual: ' + stockActual);
                 }
             });
+        } else {
+            $('#stock-actual').text('Seleccione un producto');
         }
+    });
+
+    // Manejar el envío del formulario
+    $('#ajusteStockForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = {
+            'id_producto': $('#{{ form.Producto.id_for_label }}').val(),
+            'tipo_movimiento': $('#{{ form.Tipo.id_for_label }}').val(),
+            'cantidad': $('#{{ form.Cantidad.id_for_label }}').val(),
+            'motivo': $('#{{ form.Observaciones.id_for_label }}').val(),
+            'csrfmiddlewaretoken': '{{ csrf_token }}'
+        };
+
+        $.ajax({
+            url: "{% url 'ajuste_stock' %}",
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: 'El ajuste de stock se ha registrado correctamente',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(function() {
+                        window.location.href = "{% url 'historial_movimientos' %}";
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.error || 'Ha ocurrido un error al registrar el ajuste'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ha ocurrido un error al procesar la solicitud'
+                });
+            }
+        });
     });
 });
 </script>

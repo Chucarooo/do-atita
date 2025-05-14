@@ -33,14 +33,14 @@
                                 </div>
                                 
                                 <!-- Encabezados de columnas -->
-                                <div class="row mb-2 fw-bold border-bottom pb-2">
+                                <div class="row mb-2 fw-bold border-bottom pb-2" id="encabezados-productos" style="display: none;">
                                     <div class="col-4">Nombre</div>
                                     <div class="col-2 text-center">Stock</div>
                                     <div class="col-3 text-end">Precio Costo</div>
                                     <div class="col-3 text-end">Acciones</div>
                                 </div>
                                 
-                                <div class="list-group" id="lista-productos" style="max-height: 300px; overflow-y: auto;">
+                                <div class="list-group" id="lista-productos" style="max-height: 300px; overflow-y: auto; display: none;">
                                     {% for producto in productos %}
                                     <div class="list-group-item py-2 producto-item">
                                         <div class="row align-items-center">
@@ -180,18 +180,32 @@
 
         // Configurar búsqueda de productos
         const buscarProducto = document.getElementById('buscarProducto');
+        const encabezadosProductos = document.getElementById('encabezados-productos');
+        const listaProductos = document.getElementById('lista-productos');
+        
         buscarProducto.addEventListener('input', function() {
             const busqueda = this.value.toLowerCase();
             const productos = document.querySelectorAll('.producto-item');
+            let hayResultados = false;
             
             productos.forEach(producto => {
                 const nombre = producto.querySelector('.col-4').textContent.toLowerCase();
                 if (nombre.includes(busqueda)) {
                     producto.style.display = '';
+                    hayResultados = true;
                 } else {
                     producto.style.display = 'none';
                 }
             });
+            
+            // Mostrar/ocultar encabezados y lista según si hay búsqueda
+            if (busqueda.length > 0) {
+                encabezadosProductos.style.display = '';
+                listaProductos.style.display = '';
+            } else {
+                encabezadosProductos.style.display = 'none';
+                listaProductos.style.display = 'none';
+            }
         });
 
         // Configurar botones de agregar producto

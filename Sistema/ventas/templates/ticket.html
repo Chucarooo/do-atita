@@ -9,71 +9,94 @@
             margin: 0;
         }
         body {
-            width: 58mm;
+            width: 55mm;
             margin: 0;
             padding: 0;
             font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.2;
+            font-size: 9px;
+            line-height: 1;
+            font-weight: bold;
         }
         .ticket {
             width: 100%;
-            padding: 5mm;
+            padding: 1mm;
             box-sizing: border-box;
         }
         .header {
             text-align: center;
-            margin-bottom: 5mm;
+            margin-bottom: 2mm;
         }
         .header h1 {
-            font-size: 14px;
+            font-size: 11px;
             margin: 0;
             padding: 0;
+            font-weight: bold;
         }
         .header p {
-            margin: 2px 0;
-            font-size: 11px;
+            margin: 1px 0;
+            font-size: 8px;
+            font-weight: bold;
         }
         .info {
-            margin: 5mm 0;
+            margin: 2mm 0;
             border-top: 1px dashed #000;
             border-bottom: 1px dashed #000;
-            padding: 3mm 0;
+            padding: 1mm 0;
         }
         .info p {
-            margin: 2px 0;
-            font-size: 11px;
+            margin: 1px 0;
+            font-size: 8px;
+            font-weight: bold;
         }
         .items {
             width: 100%;
-            margin: 5mm 0;
+            margin: 2mm 0;
         }
         .items table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 8px;
+            table-layout: fixed;
         }
         .items th {
             text-align: left;
-            font-size: 11px;
             border-bottom: 1px solid #000;
+            padding: 1px 0;
+            font-weight: bold;
         }
         .items td {
-            font-size: 11px;
-            padding: 2px 0;
+            padding: 1px 0;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+        .items td:nth-child(1) { width: 38%; }
+        .items td:nth-child(2) { width: 10%; text-align: center; }
+        .items td:nth-child(3) { width: 22%; text-align: right; }
+        .items td:nth-child(4) { width: 30%; text-align: right; }
         .total {
             text-align: right;
-            margin: 5mm 0;
+            margin: 2mm 0;
             font-weight: bold;
+            font-size: 9px;
+            padding-right: 1mm;
         }
         .footer {
             text-align: center;
-            margin-top: 5mm;
-            font-size: 11px;
+            margin-top: 2mm;
+            font-size: 8px;
+            font-weight: bold;
+        }
+        .separator {
+            border-top: 1px dashed #000;
+            margin: 1mm 0;
         }
         @media print {
             body {
-                width: 58mm;
+                width: 55mm;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
             .no-print {
                 display: none;
@@ -89,6 +112,8 @@
             <p>{{ empresa.telefono }}</p>
         </div>
 
+        <div class="separator"></div>
+
         <div class="info">
             <p>Ticket N°: {{ venta.NumeroComprobate }}</p>
             <p>Fecha: {{ fecha }}</p>
@@ -100,7 +125,7 @@
         <div class="items">
             <table>
                 <tr>
-                    <th>Descripción</th>
+                    <th>Desc.</th>
                     <th>Cant.</th>
                     <th>P.U.</th>
                     <th>Subtotal</th>
@@ -109,21 +134,23 @@
                 <tr>
                     <td>{{ detalle.Producto.Nombre }}</td>
                     <td>{{ detalle.Cantidad }}</td>
-                    <td>${{ detalle.PrecioUnitario }}</td>
-                    <td>${{ detalle.Subtotal }}</td>
+                    <td>${{ detalle.PrecioUnitario|floatformat:2 }}</td>
+                    <td>${{ detalle.Subtotal|floatformat:2 }}</td>
                 </tr>
                 {% endfor %}
             </table>
         </div>
 
+        <div class="separator"></div>
+
         <div class="total">
-            <p>Total: ${{ venta.ImporteTotal }}</p>
+            <p>Total: ${{ venta.ImporteTotal|floatformat:2 }}</p>
         </div>
 
         <div class="info">
             <p>Formas de Pago:</p>
             {% for pago in pagos %}
-            <p>{{ pago.MedioDePago.Nombre }}: ${{ pago.Monto }}</p>
+            <p>{{ pago.MedioDePago.Nombre }}: ${{ pago.Monto|floatformat:2 }}</p>
             {% endfor %}
         </div>
 

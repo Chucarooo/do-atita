@@ -7,6 +7,10 @@
 
 <link rel="stylesheet" href="{% static 'index/css/b4.css' %}">
 <script src="{% static 'index/js/b4.js' %}"></script>
+<!-- Agregar DataTables CSS y JS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap4.min.css">
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
 
 <div id="AgregarPersonalModal" class="modal" style="overflow: scroll;">
     <div class="modal-dialog">
@@ -141,13 +145,17 @@
                 </button>
             </a>
         </div>
-        <div class="card card-body" style="overflow:scroll">
-            <table class="table table-hover table-primary" id="myTable">
+        <div class="card card-body">
+            <table class="table table-hover table-primary" id="tablaClientes">
                 <thead>
                     <tr>
                         <th>Apellido</th>
                         <th>Nombre</th>
-                        <th>Telefono</th>
+                        <th>DNI</th>
+                        <th>Teléfono</th>
+                        <th>Dirección</th>
+                        <th>Email</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="text-dark">
@@ -155,7 +163,10 @@
                     <tr>
                         <td>{{i.Apellido}}</td>
                         <td>{{i.Nombre}}</td>
+                        <td>{{i.DNI}}</td>
                         <td>{{i.Telefono}}</td>
+                        <td>{{i.Direccion}}</td>
+                        <td>{{i.Email}}</td>
                         <td>
                             <button onclick="editarPersonal('{{i.id}}','{{i.Nombre}}', '{{i.Apellido}}', '{{i.DNI}}', '{{i.Telefono}}', '{{i.Direccion}}', '{{i.Email}}')" class="btn btn-dark-outline btn-sm" data-toggle="modal"
                                 href="#EditarPersonalModal"><img src="{% static 'index/img/editar.png' %}" alt="Error"
@@ -175,11 +186,40 @@
 {% for message in messages %}
 <script>
     Swal.fire({
-        icon: 'error',
-        title: 'Error...',
+        icon: '{% if message.tags == "error" %}error{% else %}success{% endif %}',
+        title: '{% if message.tags == "error" %}Error...{% else %}Éxito{% endif %}',
         text: "{{message}}",
     })
 </script>
 {% endfor %}
 {% endif %}
+
+<script>
+    $(document).ready(function() {
+        $('#tablaClientes').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json"
+            },
+            "order": [[0, "asc"]], // Ordenar por apellido por defecto
+            "pageLength": 10, // Número de registros por página
+            "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Todos"]], // Opciones de cantidad de registros
+            "responsive": true,
+            "autoWidth": false
+        });
+    });
+
+    function editarPersonal(id, nombre, apellido, dni, telefono, direccion, email) {
+        document.getElementById('id_personal_editar').value = id;
+        document.getElementById('nombre_editar').value = nombre === 'None' ? '' : nombre;
+        document.getElementById('apellido_editar').value = apellido === 'None' ? '' : apellido;
+        document.getElementById('dni_editar').value = dni === 'None' ? '' : dni;
+        document.getElementById('telefono_editar').value = telefono === 'None' ? '' : telefono;
+        document.getElementById('direccion_editar').value = direccion === 'None' ? '' : direccion;
+        document.getElementById('email_editar').value = email === 'None' ? '' : email;
+    }
+
+    function eliminarPersonal(id) {
+        document.getElementById('id_personal_eliminar').value = id;
+    }
+</script>
 {% endblock %}
