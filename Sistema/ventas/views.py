@@ -1875,122 +1875,71 @@ def ajuste_stock_view(request):
 
 @login_required
 def dashboard_view(request):
-    # Obtener fechas para el filtro
-    fecha_desde = request.GET.get('fecha_desde')
-    fecha_hasta = request.GET.get('fecha_hasta')
-    
-    # Si no se especifican fechas, usar el último mes
-    if not fecha_desde or not fecha_hasta:
-        fecha_hasta = timezone.now().date()
-        fecha_desde = fecha_hasta - timezone.timedelta(days=30)
-    else:
-        fecha_desde = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
-        fecha_hasta = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
-    
-    # Ventas por día
-    ventas_diarias = Venta.objects.filter(
-        Fecha__date__range=[fecha_desde, fecha_hasta]
-    ).values('Fecha__date').annotate(
-        total=Sum('ImporteTotal'),
-        cantidad=Count('id')
-    ).order_by('Fecha__date')
+    # Obtener fechas del request o usar valores por defecto
+    fecha_desde = request.GET.get('fecha_desde', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    fecha_hasta = request.GET.get('fecha_hasta', datetime.now().strftime('%Y-%m-%d'))
 
-    # Convertir valores decimales a float y formatear fechas
-    ventas_diarias = list(ventas_diarias)
-    for venta in ventas_diarias:
-        venta['total'] = float(venta['total']) if venta['total'] else 0.0
-        # Formatear la fecha como string en formato ISO
-        venta['Fecha__date'] = venta['Fecha__date'].isoformat()
-    
-    # Productos más vendidos
-    productos_mas_vendidos = DetalleVenta.objects.filter(
-        Venta__Fecha__date__range=[fecha_desde, fecha_hasta]
+    # Convertir fechas a objetos datetime
+    fecha_desde = datetime.strptime(fecha_desde, '%Y-%m-%d')
+    fecha_hasta = datetime.strptime(fecha_hasta, '%Y-%m-%d') + timedelta(days=1)
+
+    # Obtener ventas del período
+    ventas = Venta.objects.filter(
+        Fecha__range=[fecha_desde, fecha_hasta]
+    )
+
+    # Calcular totales
+    total_ventas = {
+        'total': float(ventas.aggregate(total=Sum('ImporteTotal'))['total'] or 0),
+        'cantidad': ventas.count()
+    }
+
+    # Obtener ventas diarias para el gráfico y formatear las fechas
+    ventas_diarias = []
+    for venta in ventas.values('Fecha__date').annotate(
+        total=Sum('ImporteTotal')
+    ).order_by('Fecha__date'):
+        ventas_diarias.append({
+            'Fecha__date': venta['Fecha__date'].strftime('%Y-%m-%d'),
+            'total': float(venta['total'])
+        })
+
+    # Obtener productos con stock bajo
+    productos_stock_bajo = Producto.objects.filter(
+        Cantidad__lte=F('CantidadMinimaSugerida')
+    )
+
+    # Obtener productos con más salidas
+    productos_mas_salidas = MovimientoStock.objects.filter(
+        Fecha__range=[fecha_desde, fecha_hasta],
+        Tipo='SALIDA'
     ).values(
         'Producto__Nombre'
     ).annotate(
-        cantidad_total=Sum('Cantidad'),
-        monto_total=Sum('Subtotal')
-    ).order_by('-cantidad_total')[:10]
+        total_salidas=Sum('Cantidad')
+    ).order_by('-total_salidas')[:10]
 
-    # Convertir valores decimales a float
-    productos_mas_vendidos = list(productos_mas_vendidos)
-    for producto in productos_mas_vendidos:
-        producto['monto_total'] = float(producto['monto_total']) if producto['monto_total'] else 0.0
-    
-    # Ventas por medio de pago
-    ventas_por_pago = PagoVenta.objects.filter(
-        Venta__Fecha__date__range=[fecha_desde, fecha_hasta]
-    ).values(
-        'MedioDePago__Nombre',
-        'MedioDePago__id'
-    ).annotate(
-        monto_total=Sum('Monto')
-    ).order_by('-monto_total')
+    # Agregar información de stock actual y mínimo a los productos con más salidas
+    for producto in productos_mas_salidas:
+        producto_obj = Producto.objects.get(Nombre=producto['Producto__Nombre'])
+        producto['stock_actual'] = producto_obj.Cantidad
+        producto['stock_minimo'] = producto_obj.CantidadMinimaSugerida
 
-    # Convertir valores decimales a float
-    ventas_por_pago = list(ventas_por_pago)
-    for venta in ventas_por_pago:
-        venta['monto_total'] = float(venta['monto_total']) if venta['monto_total'] else 0.0
-
-    # Si no hay ventas por pago, agregamos un valor por defecto
-    if not ventas_por_pago:
-        ventas_por_pago = [{
-            'MedioDePago__Nombre': 'Sin ventas',
-            'monto_total': 0.0
-        }]
-    
-    # Total de ventas del período
-    total_ventas = Venta.objects.filter(
-        Fecha__date__range=[fecha_desde, fecha_hasta]
-    ).aggregate(
-        total=Sum('ImporteTotal'),
-        cantidad=Count('id')
-    )
-    
-    # Convertir valores decimales a float
-    total_ventas['total'] = float(total_ventas['total']) if total_ventas['total'] else 0.0
-    
-    # Ventas por cliente
-    ventas_por_cliente = Venta.objects.filter(
-        Fecha__date__range=[fecha_desde, fecha_hasta],
-        Cliente__isnull=False
-    ).values(
-        'Cliente__Nombre'
-    ).annotate(
-        monto_total=Sum('ImporteTotal'),
-        cantidad=Count('id')
-    ).order_by('-monto_total')[:10]
-
-    # Convertir valores decimales a float
-    ventas_por_cliente = list(ventas_por_cliente)
-    for cliente in ventas_por_cliente:
-        cliente['monto_total'] = float(cliente['monto_total']) if cliente['monto_total'] else 0.0
-    
-    # Productos con stock bajo
-    productos_stock_bajo = Producto.objects.filter(
-        Cantidad__lte=F('CantidadMinimaSugerida')
-    ).values('Nombre', 'Cantidad', 'CantidadMinimaSugerida')
-    
-    # Movimientos de stock
+    # Obtener resumen de movimientos de stock
     movimientos_stock = MovimientoStock.objects.filter(
-        Fecha__date__range=[fecha_desde, fecha_hasta]
-    ).values(
-        'Tipo'
-    ).annotate(
-        cantidad=Sum('Cantidad')
+        Fecha__range=[fecha_desde, fecha_hasta]
+    ).values('Tipo').annotate(
+        cantidad=Count('id')
     )
     
     context = {
         'fecha_desde': fecha_desde,
-        'fecha_hasta': fecha_hasta,
-        'ventas_diarias': ventas_diarias,
-        'productos_mas_vendidos': productos_mas_vendidos,
-        'ventas_por_pago': ventas_por_pago,
-        'productos_stock_bajo': list(productos_stock_bajo),
+        'fecha_hasta': fecha_hasta - timedelta(days=1),
         'total_ventas': total_ventas,
-        'ventas_por_cliente': ventas_por_cliente,
-        'movimientos_stock': list(movimientos_stock),
-        'titulo': 'Dashboard'
+        'ventas_diarias': ventas_diarias,
+        'productos_stock_bajo': productos_stock_bajo,
+        'productos_mas_salidas': productos_mas_salidas,
+        'movimientos_stock': movimientos_stock,
     }
     
     return render(request, 'ventas/dashboard.html', context)
