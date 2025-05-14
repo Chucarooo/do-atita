@@ -138,3 +138,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'Login'
 LOGIN_REDIRECT_URL = 'Index'
+
+# Configuración de la Empresa
+EMPRESA_NOMBRE = 'Mi Empresa'
+EMPRESA_DIRECCION = 'Dirección de la Empresa'
+EMPRESA_TELEFONO = 'Tel: 123-456-7890'

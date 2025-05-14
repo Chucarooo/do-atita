@@ -1,244 +1,142 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <title>Ticket de Venta</title>
     <style>
-    @page {
-    size: 58mm auto;
-    margin: 0;
-}
-
-html, body {
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    line-height: 1.2;
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    color: #000;
-    background-color: #fff;
-    box-sizing: border-box;
-    font-weight:600;
-}
-
-.ticket-content {
-    width: 49mm;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-.header, .ticket-info, .footer {
-    text-align: center;
-    color: #000;
-    padding: 0;
-}
-
-.company-name {
-    font-size: 12px;
-    font-weight: bold;
-    margin-bottom: 1mm;
-    color: #000;
-}
-
-.company-info {
-    font-size: 9.5px;
-    line-height: 1.2;
-    color: #000;
-}
-
-.ticket-title {
-    font-weight: bold;
-    margin: 1mm 0;
-    color: #000;
-    font-size: 10.5px;
-}
-
-.ticket-number {
-    font-size: 10.5px;
-    font-weight: bold;
-    margin: 1mm 0;
-    color: #000;
-}
-
-.ticket-date {
-    font-size: 9.5px;
-    color: #000;
-}
-
-.separator {
-    border-top: 1px solid #000;
-    margin: 1mm 0;
-}
-
-.items {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
-
-.items th, .items td {
-    font-size: 9.5px;
-    padding: 0;
-    color: #000;
-}
-
-.items th {
-    font-weight: bold;
-}
-
-.items .description {
-    width: 27mm;
-    word-break: break-word;
-    padding-left: 0;
-    text-align: left;
-}
-
-.items .quantity {
-    width: 8mm;
-    text-align: center;
-}
-
-.items .subtotal {
-    width: 13mm;
-    text-align: center;
-    padding-right: 0mm;
-}
-
-.total {
-    font-weight: bold;
-    font-size: 10.5px;
-    text-align: right;
-    margin-top: 1mm;
-    padding-top: 1mm;
-    border-top: 1px solid #000;
-    color: #000;
-    width: 100%;
-}
-table.items {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-    overflow: hidden;
-}
-.items td, .items th {
-    padding: 0.2mm;
-    word-break: break-word;
-}
-
-.payment-info {
-    margin-top: 1mm;
-    font-size: 9.5px;
-    color: #000;
-    padding: 0 1mm;
-}
-
-.payment-info p {
-    margin: 1mm 0;
-    color: #000;
-}
-
-.payment-info strong {
-    font-size: 10.5px;
-}
-
-.footer {
-    font-size: 9.5px;
-    color: #000;
-    margin-top: 1mm;
-    font-weight: bold;
-    padding: 0 1mm;}
-
-
-
-
-
-@media print {
-    html, body {
-        padding: 0;
-        width: 54mm;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-
-    .separator {
-        border-top: 1px solid #000;
-    }
-
-    .noprint {
-        display: none;
-    }
-}
-
+        @page {
+            size: 58mm auto;
+            margin: 0;
+        }
+        body {
+            width: 58mm;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.2;
+        }
+        .ticket {
+            width: 100%;
+            padding: 5mm;
+            box-sizing: border-box;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 5mm;
+        }
+        .header h1 {
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+        }
+        .header p {
+            margin: 2px 0;
+            font-size: 11px;
+        }
+        .info {
+            margin: 5mm 0;
+            border-top: 1px dashed #000;
+            border-bottom: 1px dashed #000;
+            padding: 3mm 0;
+        }
+        .info p {
+            margin: 2px 0;
+            font-size: 11px;
+        }
+        .items {
+            width: 100%;
+            margin: 5mm 0;
+        }
+        .items table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .items th {
+            text-align: left;
+            font-size: 11px;
+            border-bottom: 1px solid #000;
+        }
+        .items td {
+            font-size: 11px;
+            padding: 2px 0;
+        }
+        .total {
+            text-align: right;
+            margin: 5mm 0;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 5mm;
+            font-size: 11px;
+        }
+        @media print {
+            body {
+                width: 58mm;
+            }
+            .no-print {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="ticket-content">
+    <div class="ticket">
         <div class="header">
-            <div class="company-name">{{ empresa.nombre }}</div>
-            <div class="company-info">
-                {{ empresa.direccion }}<br>
-                Tel: {{ empresa.telefono }}
-            </div>
+            <h1>{{ empresa.nombre }}</h1>
+            <p>{{ empresa.direccion }}</p>
+            <p>{{ empresa.telefono }}</p>
         </div>
 
-        <div class="separator"></div>
-
-        <div class="ticket-info">
-            <div class="ticket-title">TICKET DE VENTA</div>
-            <div class="ticket-number">N° {{ venta.NumeroComprobate }}</div>
-            <div class="ticket-date">Fecha: {{ fecha }}</div>
+        <div class="info">
+            <p>Ticket N°: {{ venta.NumeroComprobate }}</p>
+            <p>Fecha: {{ fecha }}</p>
+            {% if venta.Cliente %}
+            <p>Cliente: {{ venta.Cliente.Nombre }} {{ venta.Cliente.Apellido }}</p>
+            {% endif %}
         </div>
 
-        <div class="separator"></div>
-
-        <table class="items">
-            <thead>
+        <div class="items">
+            <table>
                 <tr>
-                    <th class="description">Descripción</th>
-                    <th class="quantity">Cant</th>
-                    <th class="subtotal">Subtotal</th>
+                    <th>Descripción</th>
+                    <th>Cant.</th>
+                    <th>P.U.</th>
+                    <th>Subtotal</th>
                 </tr>
-            </thead>
-            <tbody>
                 {% for detalle in detalles %}
                 <tr>
-                    <td class="description">{{ detalle.Producto.Nombre }}</td>
-                    <td class="quantity">{{ detalle.Cantidad }}</td>
-                    <td class="subtotal">${{ detalle.Subtotal|floatformat:2 }}</td>
+                    <td>{{ detalle.Producto.Nombre }}</td>
+                    <td>{{ detalle.Cantidad }}</td>
+                    <td>${{ detalle.PrecioUnitario }}</td>
+                    <td>${{ detalle.Subtotal }}</td>
                 </tr>
                 {% endfor %}
-            </tbody>
-        </table>
+            </table>
+        </div>
 
         <div class="total">
-            TOTAL: ${{ venta.ImporteTotal|floatformat:2 }}
+            <p>Total: ${{ venta.ImporteTotal }}</p>
         </div>
 
-        <div class="separator"></div>
-
-        <div class="payment-info">
-            <p><strong>Formas de Pago:</strong></p>
+        <div class="info">
+            <p>Formas de Pago:</p>
             {% for pago in pagos %}
-            <p>{{ pago.MedioDePago.Nombre }}: ${{ pago.Monto|floatformat:2 }}</p>
+            <p>{{ pago.MedioDePago.Nombre }}: ${{ pago.Monto }}</p>
             {% endfor %}
         </div>
-
-        <div class="separator"></div>
 
         <div class="footer">
             <p>¡Gracias por su compra!</p>
             <p>Conserve este ticket para cualquier reclamo</p>
         </div>
     </div>
-    
+
     <script>
         window.onload = function() {
             window.print();
-            setTimeout(function() {
-                window.close();
-            }, 1000);
-        };
+        }
     </script>
 </body>
 </html>

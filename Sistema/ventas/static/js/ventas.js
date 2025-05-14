@@ -1,618 +1,575 @@
 // Variables globales
 let productos = [];
 let total = 0;
+let totalVenta = 0;
+let productosVenta = [];
+
+// =============================================
+// INICIALIZACIÓN Y CONFIGURACIÓN
+// =============================================
 
 // Cuando el documento esté listo
 document.addEventListener('DOMContentLoaded', function() {
-   
+    // Establecer el foco en el campo de búsqueda
+    $('#buscarProducto').focus();
     
-    // Filtrar productos
+    // Establecer la fecha actual
+    const fechaActual = new Date().toISOString().split('T')[0];
+    $('#fecha_comprobante').val(fechaActual);
     
-    const inputBusqueda = document.getElementById('buscarProducto');
-    if (inputBusqueda) {
-        
-        inputBusqueda.focus();
-        inputBusqueda.addEventListener('keyup', filtrarProductos);
-    }
+    // Inicializar los productos
+    inicializarProductos();
     
-    // Agregar productos al carrito
-    const botonesAgregar = document.querySelectorAll('.btn-agregar');
-    botonesAgregar.forEach(function(boton) {
-        boton.addEventListener('click', function(e) {
-            e.preventDefault(); // Evitar que el enlace se siga
-            const id = parseInt(this.dataset.id);
-            const nombre = this.dataset.nombre;
-            const precioLista = parseFloat(this.dataset.precioLista);
-            const precioContado = parseFloat(this.dataset.precioContado);
-            const stock = parseInt(this.dataset.stock);
-            
-            agregarProducto(id, nombre, precioLista, precioContado, stock);
-        });
-    });
+    // Configurar eventos
+    configurarEventos();
     
-    // Finalizar venta
-    const btnFinalizar = document.getElementById('btnFinalizarVenta');
-    if (btnFinalizar) {
-        btnFinalizar.addEventListener('click', finalizarVenta);
-    }
-    
-    // Establecer la fecha actual en el campo de fecha
-    const today = new Date();
-    const formattedDate = today.toISOString().substr(0, 10);
-    const fechaComprobante = document.getElementById('fecha_comprobante');
-    if (fechaComprobante) {
-        fechaComprobante.value = formattedDate;
-    }
-    
-    // Manejar el guardado de nuevo cliente
-    const btnGuardarCliente = document.getElementById('btnGuardarCliente');
-    if (btnGuardarCliente) {
-        btnGuardarCliente.addEventListener('click', guardarNuevoCliente);
-    }
-    
-    // Delegación de eventos para los botones de la tabla
-    const tablaCarrito = document.querySelector('#tablaCarrito tbody');
-    if (tablaCarrito) {
-        tablaCarrito.addEventListener('click', function(e) {
-            // Si se hizo clic en un botón de eliminar
-            if (e.target.closest('.btn-danger')) {
-                const row = e.target.closest('tr');
-                const index = Array.from(row.parentNode.children).indexOf(row);
-                eliminarProductoCarrito(index);
-            }
-            
-            // Si se hizo clic en un botón de disminuir cantidad
-            if (e.target.closest('.btn-secondary') && e.target.textContent === '-') {
-                const row = e.target.closest('tr');
-                const index = Array.from(row.parentNode.children).indexOf(row);
-                modificarCantidad(index, -1);
-            }
-            
-            // Si se hizo clic en un botón de aumentar cantidad
-            if (e.target.closest('.btn-secondary') && e.target.textContent === '+') {
-                const row = e.target.closest('tr');
-                const index = Array.from(row.parentNode.children).indexOf(row);
-                modificarCantidad(index, 1);
-            }
-        });
-        
-        // Delegación de eventos para los inputs de la tabla
-        tablaCarrito.addEventListener('change', function(e) {
-            // Si se cambió un input de cantidad
-            if (e.target.matches('input[type="number"]') && e.target.closest('td').classList.contains('text-center')) {
-                const row = e.target.closest('tr');
-                const index = Array.from(row.parentNode.children).indexOf(row);
-                actualizarCantidadManual(e.target, index);
-            }
-            
-            // Si se cambió un input de precio
-            if (e.target.matches('input[type="number"]') && !e.target.closest('td').classList.contains('text-center')) {
-                const row = e.target.closest('tr');
-                const index = Array.from(row.parentNode.children).indexOf(row);
-                actualizarPrecio(e.target, index);
-            }
-        });
-    }
+    // Configurar AJAX
+    configurarAjax();
 });
 
-// Función para filtrar productos
-function filtrarProductos() {
-    const texto = document.getElementById('buscarProducto').value.toLowerCase();
-    const items = document.querySelectorAll('#lista-productos .list-group-item');
+// Función para inicializar productos
+function inicializarProductos() {
+    $('.list-group-item').each(function() {
+        const btnAgregar = $(this).find('.btn-agregar');
+        const id = btnAgregar.data('id');
+        const nombre = $(this).find('.col-3').text();
+        const precioLista = parseFloat(btnAgregar.data('precio-lista'));
+        const precioContado = parseFloat(btnAgregar.data('precio-contado'));
+        const stock = parseInt(btnAgregar.data('stock'));
+        const codigoBarras = btnAgregar.data('codigo-barras');
+        
+        $(this).data('codigo-barras', codigoBarras);
+    });
+}
+
+// Función para configurar eventos
+function configurarEventos() {
+    // Evento para el campo de búsqueda
+    $('#buscarProducto').on('input', filtrarProductos);
     
-    // Si el campo de búsqueda está vacío, ocultar todos los elementos
-    if (texto === '') {
-        items.forEach(function(item) {
-            item.style.display = 'none';
-        });
-        return;
-    }
-    
-    // Si hay texto, mostrar solo los elementos que coincidan
-    items.forEach(function(item) {
-        const contenido = item.textContent.toLowerCase();
-        if (contenido.includes(texto)) {
-            item.style.display = '';
-        } else {
-            item.style.display = 'none';
+    // Evento para detectar cuando se presiona Enter en el campo de búsqueda
+    $('#buscarProducto').on('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const valor = $(this).val().trim();
+            
+            if (/^\d+$/.test(valor) && valor.length >= 8) {
+                manejarLecturaCodigoBarras(valor);
+            }
+        }
+    });
+
+    // Remover eventos anteriores y agregar nuevo evento click a los botones de agregar
+    $(document).off('click', '.btn-agregar').on('click', '.btn-agregar', function(e) {
+        e.preventDefault();
+        const id = $(this).data('id');
+        const nombre = $(this).data('nombre');
+        const precioLista = parseFloat($(this).data('precio-lista'));
+        const precioContado = parseFloat($(this).data('precio-contado'));
+        const stock = parseInt($(this).data('stock'));
+        
+        agregarProducto(id, nombre, precioLista, precioContado, stock);
+    });
+
+    // Evento para el formulario de marca
+    $('#addMarcaForm').on('submit', manejarAgregarMarca);
+}
+
+// Función para configurar AJAX
+function configurarAjax() {
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", $('input[name=csrfmiddlewaretoken]').val());
+            }
         }
     });
 }
 
-// Función para agregar producto
-function agregarProducto(id, nombre, precioLista, precioContado, stock) {
-    // Verificar si ya existe en el carrito
-    let existe = false;
+// =============================================
+// FUNCIONES DE BÚSQUEDA Y FILTRADO
+// =============================================
+
+// Función para filtrar productos
+function filtrarProductos() {
+    const texto = $('#buscarProducto').val().toLowerCase();
+    const items = $('.list-group-item');
     
-    for (let i = 0; i < productos.length; i++) {
-        if (productos[i].id === id) {
-            existe = true;
-            if (productos[i].cantidad < stock) {
-                productos[i].cantidad++;
-                productos[i].subtotal = productos[i].cantidad * productos[i].precioActual;
-            } else {
-                alert('No hay suficiente stock disponible');
-            }
-            break;
-        }
+    if (!texto) {
+        items.hide();
+        return;
     }
     
-    if (!existe) {
+    if (/^\d+$/.test(texto) && texto.length >= 8) {
+        items.hide();
+    } else {
+        items.each(function() {
+            const nombre = $(this).find('.col-3').text().toLowerCase();
+            $(this).toggle(nombre.includes(texto));
+        });
+    }
+}
+
+// Función para buscar producto por código de barras
+function buscarProductoPorCodigoBarras(codigo) {
+    let productoEncontrado = null;
+    const codigoBuscado = codigo.toString();
+    
+    $('.list-group-item').each(function() {
+        const btnAgregar = $(this).find('.btn-agregar');
+        const codigoBarras = btnAgregar.data('codigo-barras');
+        const codigoProducto = codigoBarras ? codigoBarras.toString() : null;
+        
+        if (codigoProducto === codigoBuscado) {
+            productoEncontrado = {
+                id: btnAgregar.data('id'),
+                nombre: btnAgregar.data('nombre'),
+                precioLista: parseFloat(btnAgregar.data('precio-lista')),
+                precioContado: parseFloat(btnAgregar.data('precio-contado')),
+                stock: parseInt(btnAgregar.data('stock'))
+            };
+            return false;
+        }
+    });
+    
+    return productoEncontrado;
+}
+
+// Función para manejar la lectura del código de barras
+function manejarLecturaCodigoBarras(codigo) {
+    const codigoStr = codigo.toString();
+    const producto = buscarProductoPorCodigoBarras(codigoStr);
+    
+    if (producto) {
+        agregarProducto(
+            producto.id,
+            producto.nombre,
+            producto.precioLista,
+            producto.precioContado,
+            producto.stock
+        );
+        $('#buscarProducto').val('');
+        $('.list-group-item').hide();
+    } else {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Producto no encontrado',
+            text: 'No se encontró ningún producto con el código de barras escaneado'
+        });
+        $('#buscarProducto').val('');
+    }
+}
+
+// =============================================
+// FUNCIONES DEL CARRITO
+// =============================================
+
+// Función para agregar producto
+function agregarProducto(id, nombre, precioLista, precioContado, stock) {
+    // Convertir los parámetros a sus tipos correctos
+    id = parseInt(id);
+    precioLista = typeof precioLista === 'string' 
+        ? parseFloat(precioLista.replace(',', '.').replace(/[^0-9.-]+/g, ''))
+        : Number(precioLista);
+    precioContado = typeof precioContado === 'string'
+        ? parseFloat(precioContado.replace(',', '.').replace(/[^0-9.-]+/g, ''))
+        : Number(precioContado);
+    stock = typeof stock === 'string'
+        ? parseInt(stock.replace(/[^0-9]+/g, ''))
+        : Number(stock);
+    
+    // Verificar si ya existe en el carrito
+    const productoExistente = productos.find(p => p.id === id);
+    
+    if (productoExistente) {
+        if (productoExistente.cantidad < stock) {
+            productoExistente.cantidad++;
+        } else {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Stock insuficiente',
+                text: `No hay suficiente stock disponible. Stock actual: ${stock}`
+            });
+            return;
+        }
+    } else {
         productos.push({
             id: id,
             nombre: nombre,
             precioLista: precioLista,
             precioContado: precioContado,
-            precioActual: precioContado, // Por defecto usamos precio contado
-            usandoPrecioContado: true,   // Flag para saber qué precio estamos usando
             cantidad: 1,
-            subtotal: precioContado,
-            stock: stock  // Agregamos el stock al objeto del producto
+            stock: stock
         });
     }
     
     actualizarCarrito();
 }
 
-// Actualizar carrito
+// Función para actualizar el carrito
 function actualizarCarrito() {
-    let html = '';
-    let inputsHidden = '';
+    const tbody = $('#tablaCarrito tbody');
+    tbody.empty();
+    
     total = 0;
     
-    for (let i = 0; i < productos.length; i++) {
-        let item = productos[i];
+    productos.forEach((producto, index) => {
+        const subtotal = producto.cantidad * producto.precioContado;
+        total += subtotal;
         
-        // Calcular el subtotal actualizado
-        item.subtotal = item.cantidad * item.precioActual;
-        total += item.subtotal;
-        
-        // Determinar qué clase usar para el botón según el precio actual
-        let btnClass = item.usandoPrecioContado ? "btn-success" : "btn-warning";
-        
-        html += `
-            <tr data-index="${i}">
-                <td>${item.nombre}</td>
+        // Crear la fila con jQuery para mejor manejo de eventos
+        const fila = $(`
+            <tr>
+                <td>${producto.nombre}</td>
                 <td class="text-center">
-                    <div class="d-flex align-items-center justify-content-center">
-                        <button type="button" class="btn btn-sm btn-secondary btn-decrease" onclick="modificarCantidad(${i}, -1)">-</button>
-                        <input type="number" value="${item.cantidad}" min="1" class="form-control form-control-sm text-center mx-1" style="width: 60px;" onchange="actualizarCantidadManual(this, ${i})">
-                        <button type="button" class="btn btn-sm btn-secondary btn-increase" onclick="modificarCantidad(${i}, 1)">+</button>
+                    <div class="input-group input-group-sm">
+                        <button class="btn btn-outline-secondary btn-decrementar" type="button">-</button>
+                        <input type="number" class="form-control text-center input-cantidad" value="${producto.cantidad}" 
+                               min="1" max="${producto.stock}">
+                        <button class="btn btn-outline-secondary btn-incrementar" type="button">+</button>
                     </div>
                 </td>
-                <td><input type="number" value="${item.precioActual.toFixed(2)}" min="0" step="0.01" class="form-control form-control-sm" onchange="actualizarPrecio(this, ${i})"></td>
-                <td>$${item.subtotal.toFixed(2)}</td>
+                <td class="text-end">$${producto.precioContado.toFixed(2)}</td>
+                <td class="text-end">$${subtotal.toFixed(2)}</td>
                 <td class="text-center">
-                    <div class="d-flex justify-content-center gap-2">
-                        <button type="button" class="${btnClass}" style="width: 32px; height: 32px;" onclick="alternarPrecio(${i})">
-                            <i class="fas fa-dollar-sign"></i>
-                        </button>
-                        <button type="button" class="btn btn-danger" style="width: 32px; height: 32px;" onclick="eliminarProductoCarrito(${i})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+                    <button class="btn btn-danger btn-sm btn-eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </td>
             </tr>
-        `;
+        `);
         
-        inputsHidden += `
-            <input type="hidden" name="productos_ids" value="${item.id}">
-            <input type="hidden" name="cantidades" value="${item.cantidad}">
-            <input type="hidden" name="precios" value="${item.precioActual}">
-        `;
-    }
-    
-    const tbody = document.querySelector('#tablaCarrito tbody');
-    if (tbody) {
-        tbody.innerHTML = html;
-    }
-    
-    // Actualizar el total
-    const totalVenta = document.getElementById('totalVenta');
-    if (totalVenta) {
-        totalVenta.textContent = '$' + total.toFixed(2);
-    }
-    
-    // Actualizar los inputs hidden
-    const productosSeleccionados = document.getElementById('productosSeleccionados');
-    if (productosSeleccionados) {
-        productosSeleccionados.innerHTML = inputsHidden;
-    }
-    
-    // Habilitar/deshabilitar botón finalizar
-    const btnFinalizarVenta = document.getElementById('btnFinalizarVenta');
-    if (btnFinalizarVenta) {
-        btnFinalizarVenta.disabled = (productos.length === 0);
-    }
-}
-
-// Función para actualizar el total automáticamente
-function actualizarTotal() {
-    total = 0;
-    productos.forEach(item => {
-        item.subtotal = item.cantidad * item.precioActual;
-        total += item.subtotal;
+        // Agregar event listeners a los botones
+        fila.find('.btn-decrementar').on('click', function() {
+            cambiarCantidad(index, -1);
+        });
+        
+        fila.find('.btn-incrementar').on('click', function() {
+            cambiarCantidad(index, 1);
+        });
+        
+        fila.find('.input-cantidad').on('change', function() {
+            actualizarCantidad(index, parseInt(this.value));
+        });
+        
+        fila.find('.btn-eliminar').on('click', function() {
+            eliminarProducto(index);
+        });
+        
+        tbody.append(fila);
     });
     
-    const totalVenta = document.getElementById('totalVenta');
-    if (totalVenta) {
-        totalVenta.textContent = '$' + total.toFixed(2);
-    }
-}
-
-// Modificar cantidad
-function modificarCantidad(index, cambio) {
-    if (index >= 0 && index < productos.length) {
-        const nuevaCantidad = productos[index].cantidad + cambio;
-        if (nuevaCantidad >= 1 && nuevaCantidad <= productos[index].stock) {
-            productos[index].cantidad = nuevaCantidad;
-            productos[index].subtotal = productos[index].cantidad * productos[index].precioActual;
-            actualizarCarrito();
-        } else if (nuevaCantidad > productos[index].stock) {
-            alert('No hay suficiente stock disponible');
-        }
-    }
-}
-
-// Actualizar cantidad manualmente
-function actualizarCantidadManual(input, index) {
-    if (index >= 0 && index < productos.length) {
-        let nuevaCantidad = parseInt(input.value);
-        if (nuevaCantidad >= 1 && nuevaCantidad <= productos[index].stock) {
-            productos[index].cantidad = nuevaCantidad;
-            productos[index].subtotal = productos[index].cantidad * productos[index].precioActual;
-            actualizarCarrito();
-        } else {
-            input.value = productos[index].cantidad;
-            alert('La cantidad debe estar entre 1 y ' + productos[index].stock);
-        }
-    }
-}
-
-// Actualizar precio
-function actualizarPrecio(input, index) {
-    if (index >= 0 && index < productos.length) {
-        let nuevoPrecio = parseFloat(input.value);
-        if (nuevoPrecio >= 0) {
-            productos[index].precioActual = nuevoPrecio;
-            productos[index].subtotal = productos[index].cantidad * nuevoPrecio;
-            actualizarCarrito();
-        } else {
-            input.value = productos[index].precioActual.toFixed(2);
-            alert('El precio no puede ser negativo');
-        }
-    }
-}
-
-// Eliminar producto del carrito
-function eliminarProductoCarrito(index) {
-   
+    // Actualizar el total
+    $('#totalVenta').text(`$${total.toFixed(2)}`);
     
-    if (index >= 0 && index < productos.length) {
-       
-        productos.splice(index, 1);
-        
-        actualizarCarrito();
-    } else {
-        console.error("Índice fuera de rango:", index, "Longitud del array:", productos.length);
+    // Actualizar el monto principal con el total
+    $('#monto_principal').val(total.toFixed(2));
+    
+    // Habilitar/deshabilitar el botón de finalizar venta
+    const btnFinalizar = $('#btnFinalizarVenta');
+    const habilitado = productos.length > 0;
+    btnFinalizar.prop('disabled', !habilitado);
+    
+    // Agregar evento click al botón de finalizar si está habilitado
+    if (habilitado) {
+        btnFinalizar.off('click').on('click', finalizarVenta);
     }
 }
 
-// Función para mostrar/ocultar el segundo medio de pago
-function toggleSegundoMedio() {
-    const usarSegundoMedio = document.getElementById('usar_segundo_medio').checked;
-    const segundoMedioContainer = document.getElementById('segundo_medio_container');
-    
-    if (usarSegundoMedio) {
-        segundoMedioContainer.classList.remove('d-none');
-        actualizarMontoPrincipal(); // Actualizar el monto principal al activar
-    } else {
-        segundoMedioContainer.classList.add('d-none');
-        document.getElementById('monto_secundario').value = '';
-        document.getElementById('monto_principal').value = total.toFixed(2);
-        document.getElementById('monto_principal_display').value = total.toFixed(2);
-    }
-}
-
-// Función para actualizar el monto principal cuando cambia el secundario
-function actualizarMontoPrincipal() {
-    if (!productos.length) return;
-    
-    const montoSecundario = parseFloat(document.getElementById('monto_secundario').value) || 0;
-    
-    // Si el monto secundario es mayor que el total, ajustarlo
-    if (montoSecundario > total) {
-        document.getElementById('monto_secundario').value = total.toFixed(2);
-        document.getElementById('monto_principal').value = '0.00';
-        document.getElementById('monto_principal_display').value = '0.00';
+// Función para cambiar cantidad
+function cambiarCantidad(index, delta) {
+    if (index < 0 || index >= productos.length) {
         return;
     }
     
-    // Calcular y mostrar el monto principal
-    const montoPrincipal = total - montoSecundario;
-    document.getElementById('monto_principal').value = montoPrincipal.toFixed(2);
-    document.getElementById('monto_principal_display').value = montoPrincipal.toFixed(2);
-    
-    validarMediosPago();
-}
-
-// Función para actualizar el monto secundario cuando cambia el principal
-function actualizarMontoSecundario() {
-    if (!productos.length) return;
-    
-    const montoPrincipal = parseFloat(document.getElementById('monto_principal').value) || 0;
-    
-    // Si el monto principal es mayor que el total, ajustarlo
-    if (montoPrincipal > total) {
-        document.getElementById('monto_principal').value = total.toFixed(2);
-        document.getElementById('monto_principal_display').value = total.toFixed(2);
-        document.getElementById('monto_secundario').value = '0.00';
+    const fila = document.querySelectorAll('#tablaCarrito tbody tr')[index];
+    if (!fila) {
         return;
     }
     
-    // Calcular y mostrar el monto secundario
-    const montoSecundario = total - montoPrincipal;
-    document.getElementById('monto_secundario').value = montoSecundario.toFixed(2);
-    
-    validarMediosPago();
-}
-
-// Función para finalizar venta (actualizada con logs)
-function finalizarVenta(event) {
-    // Prevenir comportamiento predeterminado
-    if (event) {
-        event.preventDefault();
+    const inputCantidad = fila.querySelector('input[type="number"]');
+    if (!inputCantidad) {
+        return;
     }
     
-    // Verificar productos
+    const nuevaCantidad = parseInt(inputCantidad.value) + delta;
+    const stock = productos[index].stock;
+    
+    if (nuevaCantidad > 0 && nuevaCantidad <= stock) {
+        productos[index].cantidad = nuevaCantidad;
+        inputCantidad.value = nuevaCantidad;
+        actualizarCantidad(index, nuevaCantidad);
+    } else if (nuevaCantidad > stock) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Stock insuficiente',
+            text: `No hay suficiente stock disponible. Stock actual: ${stock}`,
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }
+}
+
+// Función para actualizar cantidad
+function actualizarCantidad(index, nuevaCantidad) {
+    const fila = document.querySelectorAll('#tablaCarrito tbody tr')[index];
+    const precio = productos[index].precioContado;
+    const subtotal = precio * nuevaCantidad;
+    
+    const celdaSubtotal = fila.querySelector('td:nth-child(4)');
+    celdaSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+    
+    let total = 0;
+    productos.forEach(producto => {
+        total += producto.precioContado * producto.cantidad;
+    });
+    
+    $('#totalVenta').text(`$${total.toFixed(2)}`);
+    $('#monto_principal').val(total.toFixed(2));
+}
+
+// Función para eliminar producto
+function eliminarProducto(index) {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: "Esta acción no se puede deshacer",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        allowOutsideClick: false,
+        allowEscapeKey: false
+    }).then((result) => {
+        if (result.isConfirmed) {
+            productos.splice(index, 1);
+            actualizarCarrito();
+            Swal.fire({
+                title: '¡Eliminado!',
+                text: 'El producto ha sido eliminado del carrito',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    });
+}
+
+// =============================================
+// FUNCIONES DE VENTA
+// =============================================
+
+// Función para finalizar venta
+function finalizarVenta() {
+    Swal.fire({
+        title: 'Procesando venta...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
     if (productos.length === 0) {
-        alert('Debe agregar al menos un producto a la venta');
-        return;
+        Swal.close();
+        mostrarErrorEnModal('Debe agregar al menos un producto para realizar la venta');
+        return false;
     }
     
-    // Verificar medio de pago principal
-    const medioPrincipal = document.getElementById('medio_pago_principal').value;
-    if (!medioPrincipal) {
-        alert('Debe seleccionar un medio de pago principal');
-        return;
+    const medioPago = $('#medio_pago_principal').val();
+    if (!medioPago) {
+        Swal.close();
+        mostrarErrorEnModal('Debe seleccionar un medio de pago');
+        return false;
     }
     
-    // Limpiar contenedor de productos seleccionados
-    const productosSeleccionados = document.getElementById('productosSeleccionados');
-    if (!productosSeleccionados) {
-        alert('Error: No se encontró el contenedor de productos seleccionados');
-        return;
-    }
-    productosSeleccionados.innerHTML = '';
-    
-    // AGREGAR INPUTS PARA CADA PRODUCTO
-    for (let i = 0; i < productos.length; i++) {
-        const producto = productos[i];
-        
-        // Input para ID del producto
-        const inputId = document.createElement('input');
-        inputId.type = 'hidden';
-        inputId.name = 'productos_ids';
-        inputId.value = producto.id;
-        productosSeleccionados.appendChild(inputId);
-        
-        // Input para cantidad
-        const inputCantidad = document.createElement('input');
-        inputCantidad.type = 'hidden';
-        inputCantidad.name = 'cantidades';
-        inputCantidad.value = producto.cantidad;
-        productosSeleccionados.appendChild(inputCantidad);
-        
-        // Input para precio
-        const inputPrecio = document.createElement('input');
-        inputPrecio.type = 'hidden';
-        inputPrecio.name = 'precios';
-        inputPrecio.value = producto.precioActual;
-        productosSeleccionados.appendChild(inputPrecio);
+    const monto = parseFloat($('#monto_principal').val());
+    if (isNaN(monto) || monto <= 0) {
+        Swal.close();
+        mostrarErrorEnModal('El monto debe ser mayor a cero');
+        return false;
     }
     
-    const usarSegundoMedio = document.getElementById('usar_segundo_medio').checked;
-    let medioSecundario = '';
-    let montoSecundario = 0;
-    
-    if (usarSegundoMedio) {
-        medioSecundario = document.getElementById('medio_pago_secundario').value;
-        montoSecundario = parseFloat(document.getElementById('monto_secundario').value) || 0;
-        
-        if (!medioSecundario || montoSecundario <= 0) {
-            alert('Debe completar la información del medio de pago secundario');
-            return;
-        }
-        
-        if (montoSecundario >= total) {
-            alert('El monto del medio de pago secundario no puede ser mayor o igual al total');
-            return;
-        }
+    const totalVenta = parseFloat($('#totalVenta').text().replace('$', ''));
+    if (Math.abs(totalVenta - monto) > 0.01) {
+        Swal.close();
+        mostrarErrorEnModal('El monto debe ser igual al total de la venta');
+        return false;
     }
     
-    // Agregar los nuevos campos al formulario
-    const clienteId = document.getElementById('cliente_id').value;
-    const fechaComprobante = document.getElementById('fecha_comprobante').value;
-    const numeroComprobante = document.getElementById('numero_comprobante').value;
+    const productosEnviar = productos.map(producto => ({
+        id: producto.id,
+        cantidad: producto.cantidad,
+        precio: producto.precioContado
+    }));
     
-    // Crear inputs hidden para los nuevos campos
-    const inputCliente = document.createElement('input');
-    inputCliente.type = 'hidden';
-    inputCliente.name = 'cliente_id';
-    inputCliente.value = clienteId;
-    productosSeleccionados.appendChild(inputCliente);
+    const formData = new FormData();
+    formData.append('productos', JSON.stringify(productosEnviar));
+    formData.append('medio_pago_principal', medioPago);
+    formData.append('monto_principal', monto);
     
-    const inputFecha = document.createElement('input');
-    inputFecha.type = 'hidden';
-    inputFecha.name = 'fecha_comprobante';
-    inputFecha.value = fechaComprobante;
-    productosSeleccionados.appendChild(inputFecha);
-    
-    const inputComprobante = document.createElement('input');
-    inputComprobante.type = 'hidden';
-    inputComprobante.name = 'numero_comprobante';
-    inputComprobante.value = numeroComprobante;
-    productosSeleccionados.appendChild(inputComprobante);
-    
-    const inputMedioPrincipal = document.createElement('input');
-    inputMedioPrincipal.type = 'hidden';
-    inputMedioPrincipal.name = 'medio_pago_principal';
-    inputMedioPrincipal.value = medioPrincipal;
-    productosSeleccionados.appendChild(inputMedioPrincipal);
-    
-    const inputMontoPrincipal = document.createElement('input');
-    inputMontoPrincipal.type = 'hidden';
-    inputMontoPrincipal.name = 'monto_principal';
-    inputMontoPrincipal.value = total - montoSecundario;
-    productosSeleccionados.appendChild(inputMontoPrincipal);
-    
-    if (usarSegundoMedio) {
-        const inputMedioSecundario = document.createElement('input');
-        inputMedioSecundario.type = 'hidden';
-        inputMedioSecundario.name = 'medio_pago_secundario';
-        inputMedioSecundario.value = medioSecundario;
-        productosSeleccionados.appendChild(inputMedioSecundario);
-        
-        const inputMontoSecundario = document.createElement('input');
-        inputMontoSecundario.type = 'hidden';
-        inputMontoSecundario.name = 'monto_secundario';
-        inputMontoSecundario.value = montoSecundario;
-        productosSeleccionados.appendChild(inputMontoSecundario);
-    }
-    
-    // Deshabilitar el botón y mostrar indicador de carga
-    document.getElementById('btnFinalizarVenta').disabled = true;
-    document.getElementById('btnFinalizarVenta').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Procesando...';
-    
-    // Verificar el formulario antes de enviarlo
-    const formVenta = document.getElementById('formVenta');
-    if (formVenta) {
-        formVenta.submit();
-    } else {
-        alert('Error: No se encontró el formulario de venta');
-    }
-}
-
-// Función para guardar un nuevo cliente
-function guardarNuevoCliente() {
-    const nombre = document.getElementById('nombre_cliente').value;
-    const apellido = document.getElementById('apellido_cliente').value;
-    const dni = document.getElementById('dni_cliente').value;
-    const telefono = document.getElementById('telefono_cliente').value;
-    const email = document.getElementById('email_cliente').value;
-    const direccion = document.getElementById('direccion_cliente').value;
-    
-    // Validar campos requeridos
-    if (!nombre || !apellido) {
-        alert('Nombre y apellido son campos obligatorios');
-        return;
-    }
-    
-    // Obtener el token CSRF
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    
-    // Enviar datos al servidor mediante AJAX
-    fetch(URL_GUARDAR_CLIENTE, {
+    fetch('/ventas/', {
         method: 'POST',
+        body: formData,
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({
-            nombre: nombre,
-            apellido: apellido,
-            dni: dni,
-            telefono: telefono,
-            email: email,
-            direccion: direccion
-        })
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
     })
     .then(response => response.json())
     .then(data => {
+        Swal.close();
         if (data.success) {
-            // Agregar el nuevo cliente al select
-            const selectCliente = document.getElementById('cliente_id');
-            const option = document.createElement('option');
-            option.value = data.cliente_id;
-            option.text = nombre + ' ' + apellido;
-            selectCliente.appendChild(option);
-            selectCliente.value = data.cliente_id;
-
-            // Cerrar el modal
-            $('#ClienteModal').modal('hide');
-
-            // Limpiar el formulario
-            document.getElementById('formNuevoCliente').reset();
+            mostrarExitoEnModal(data.venta_id);
         } else {
-            alert('Error al guardar el cliente: ' + data.error);
+            mostrarErrorEnModal(data.error || 'Error al procesar la venta');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Error al procesar la solicitud');
+        Swal.close();
+        mostrarErrorEnModal('Error al comunicarse con el servidor');
+    });
+    
+    return false;
+}
+
+// Función para nueva venta
+function nuevaVenta() {
+    productos = [];
+    total = 0;
+    actualizarCarrito();
+    $('#resultadoVentaModal').modal('hide');
+    
+    $('#cliente_id').val('');
+    $('#fecha_comprobante').val(new Date().toISOString().split('T')[0]);
+    $('#numero_comprobante').val('');
+    $('#medio_pago_principal').val('');
+    $('#monto_principal').val('');
+    
+    window.location.href = window.location.pathname;
+}
+
+// =============================================
+// FUNCIONES DE MODALES Y NOTIFICACIONES
+// =============================================
+
+// Función para mostrar éxito en el modal
+function mostrarExitoEnModal(ventaId) {
+    const modalBody = $('#resultadoVentaModalBody');
+    const btnNuevaVenta = $('#btnNuevaVenta');
+    const btnImprimirTicket = $('#btnImprimirTicket');
+    
+    modalBody.html(`
+        <div class="text-center">
+            <i class="fas fa-check-circle text-success" style="font-size: 64px;"></i>
+            <h4 class="mt-3">¡Venta Exitosa!</h4>
+            <p class="mt-3">La venta #${ventaId} ha sido registrada correctamente.</p>
+        </div>
+    `);
+    
+    btnNuevaVenta.show();
+    btnImprimirTicket.show();
+    
+    btnImprimirTicket.off('click').on('click', function() {
+        if (ventaId) {
+            const url = `/ventas/imprimir_ticket/${ventaId}/`;
+            const printWindow = window.open(url, '_blank', 'width=400,height=600');
+            if (!printWindow) {
+                Swal.fire({
+                    title: '¡Atención!',
+                    text: 'Por favor, permite las ventanas emergentes para imprimir el ticket.',
+                    icon: 'warning',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        }
+    });
+    
+    $('#resultadoVentaModal').modal({
+        backdrop: 'static',
+        keyboard: false
     });
 }
 
-// Función para alternar entre precio de lista y precio de contado
-function alternarPrecio(index) {
-    if (index >= 0 && index < productos.length) {
-        // Cambiar el flag
-        productos[index].usandoPrecioContado = !productos[index].usandoPrecioContado;
-        
-        // Establecer el precio según el flag
-        if (productos[index].usandoPrecioContado) {
-            productos[index].precioActual = productos[index].precioContado;
-        } else {
-            productos[index].precioActual = productos[index].precioLista;
+// Función para mostrar errores en el modal
+function mostrarErrorEnModal(mensaje) {
+    const modalBody = $('#resultadoVentaModalBody');
+    const btnNuevaVenta = $('#btnNuevaVenta');
+    const btnImprimirTicket = $('#btnImprimirTicket');
+    
+    modalBody.html(`
+        <div class="text-center">
+            <i class="fas fa-exclamation-circle text-danger" style="font-size: 64px;"></i>
+            <h4 class="mt-3">Error</h4>
+            <p class="mt-3">${mensaje}</p>
+        </div>
+    `);
+    
+    btnNuevaVenta.hide();
+    btnImprimirTicket.hide();
+    
+    $('#resultadoVentaModal').modal('show');
+}
+
+// =============================================
+// FUNCIONES DE MARCAS
+// =============================================
+
+// Función para manejar agregar marca
+function manejarAgregarMarca(e) {
+    e.preventDefault();
+    const nombreMarca = $('#nombreMarca').val().trim();
+    
+    $.ajax({
+        url: '/ventas/verificar_marca/',
+        type: 'POST',
+        data: {
+            'nombre': nombreMarca,
+            'csrfmiddlewaretoken': $('input[name=csrfmiddlewaretoken]').val()
+        },
+        success: function(response) {
+            if (response.existe) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Marca existente',
+                    text: 'Esta marca ya existe en el sistema.'
+                });
+                return;
+            }
+            
+            $.ajax({
+                url: '/ventas/add_marca/',
+                type: 'POST',
+                data: {
+                    'nombre': nombreMarca,
+                    'csrfmiddlewaretoken': $('input[name=csrfmiddlewaretoken]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#addMarcaModal').modal('hide');
+                        location.reload();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al agregar la marca: ' + response.error
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error al comunicarse con el servidor'
+                    });
+                }
+            });
+        },
+        error: function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al verificar la marca'
+            });
         }
-        
-        // Actualizar el subtotal
-        productos[index].subtotal = productos[index].cantidad * productos[index].precioActual;
-        
-        // Actualizar la vista
-        actualizarCarrito();
-    }
+    });
 }
-
-// Función para cambiar todos los productos a precio contado
-function cambiarTodosAPrecioContado() {
-    if (productos.length === 0) return;
-    
-    for (let i = 0; i < productos.length; i++) {
-        productos[i].usandoPrecioContado = true;
-        productos[i].precioActual = productos[i].precioContado;
-        productos[i].subtotal = productos[i].cantidad * productos[i].precioActual;
-    }
-    
-    actualizarCarrito();
-}
-
-// Función para cambiar todos los productos a precio lista
-function cambiarTodosAPrecioLista() {
-    if (productos.length === 0) return;
-    
-    for (let i = 0; i < productos.length; i++) {
-        productos[i].usandoPrecioContado = false;
-        productos[i].precioActual = productos[i].precioLista;
-        productos[i].subtotal = productos[i].cantidad * productos[i].precioActual;
-    }
-    
-    actualizarCarrito();
-}
-
-// Función para validar medios de pago
-function validarMediosPago() {
-    // Implementar validación si es necesario
-    // Por ahora, no hacemos nada
-}
-
-// Agregar event listeners cuando el DOM esté cargado
-document.addEventListener('DOMContentLoaded', function() {
-    // Event listener para el botón finalizar venta
-    const btnFinalizar = document.getElementById('btnFinalizarVenta');
-    if (btnFinalizar) {
-        btnFinalizar.addEventListener('click', finalizarVenta);
-    }
-    
-    // Aquí puedes agregar otros event listeners que necesites
-});

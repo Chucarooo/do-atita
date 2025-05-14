@@ -1731,15 +1731,26 @@ def imprimir_ticket_view(request, venta_id):
         # Obtener la venta
         venta = Venta.objects.get(id=venta_id)
         detalles = DetalleVenta.objects.filter(Venta=venta)
-        pagos = Pago.objects.filter(Venta=venta)
+        pagos = PagoVenta.objects.filter(Venta=venta)
         
-        # Llamar a la función de impresión directa
-        imprimir_ticket_en_pos58(venta, detalles, pagos)
+        # Obtener información de la empresa desde settings
+        empresa = {
+            'nombre': getattr(settings, 'EMPRESA_NOMBRE', 'Mi Empresa'),
+            'direccion': getattr(settings, 'EMPRESA_DIRECCION', 'Dirección de la Empresa'),
+            'telefono': getattr(settings, 'EMPRESA_TELEFONO', 'Tel: 123-456-7890')
+        }
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Ticket impreso exitosamente'
-        })
+        # Preparar el contexto
+        context = {
+            'venta': venta,
+            'detalles': detalles,
+            'pagos': pagos,
+            'empresa': empresa,
+            'fecha': venta.Fecha.strftime('%d/%m/%Y %H:%M')
+        }
+        
+        # Renderizar el template HTML
+        return render(request, 'ticket.html', context)
         
     except Venta.DoesNotExist:
         return JsonResponse({
