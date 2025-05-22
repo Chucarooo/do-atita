@@ -423,16 +423,48 @@ def ventas_view(request):
                 Cajero=request.user
             )
             
+            # Procesar cada producto y actualizar el stock
             for producto_data in productos_data:
                 producto = Producto.objects.get(id=producto_data['id'])
+                cantidad = int(producto_data['cantidad'])
+                precio = float(producto_data['precio'])
+                
+                # Verificar stock disponible
+                if producto.Cantidad < cantidad:
+                    venta.delete()  # Eliminar la venta si no hay stock suficiente
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Stock insuficiente para {producto.Nombre}. Stock disponible: {producto.Cantidad}'
+                    })
+                
+                # Crear el detalle de venta
                 DetalleVenta.objects.create(
                     Venta=venta,
                     Producto=producto,
-                    Cantidad=producto_data['cantidad'],
-                    PrecioUnitario=producto_data['precio'],
-                    Subtotal=float(producto_data['precio']) * int(producto_data['cantidad'])
+                    Cantidad=cantidad,
+                    PrecioUnitario=precio,
+                    Subtotal=precio * cantidad
+                )
+                
+                # Actualizar el stock del producto
+                stock_anterior = producto.Cantidad
+                producto.Cantidad -= cantidad
+                producto.save()
+                
+                # Registrar el movimiento de stock
+                MovimientoStock.objects.create(
+                    Fecha=venta.Fecha,
+                    Producto=producto,
+                    Tipo='SALIDA',
+                    Cantidad=cantidad,
+                    StockAnterior=stock_anterior,
+                    StockResultante=producto.Cantidad,
+                    OrigenMovimiento='VENTA',
+                    Usuario=request.user,
+                    Observaciones=f'Venta #{venta.id}'
                 )
             
+            # Crear los pagos
             PagoVenta.objects.create(
                 Venta=venta,
                 MedioDePago_id=medio_pago_principal,

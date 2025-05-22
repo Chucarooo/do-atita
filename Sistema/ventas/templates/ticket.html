@@ -5,9 +5,10 @@
     <title>Ticket de Venta</title>
     <style>
         @page {
-            size: 58mm auto;
+            size: 57mm auto;
             margin: 0;
         }
+
         body {
             width: 55mm;
             margin: 0;
@@ -17,53 +18,66 @@
             line-height: 1;
             font-weight: bold;
         }
+
         .ticket {
             width: 100%;
-            padding: 1mm;
+            padding: 0 1mm;
             box-sizing: border-box;
+            overflow: hidden;
         }
+
         .header {
             text-align: center;
             margin-bottom: 2mm;
         }
+
         .header h1 {
             font-size: 11px;
             margin: 0;
             padding: 0;
             font-weight: bold;
         }
+
         .header p {
             margin: 1px 0;
             font-size: 8px;
             font-weight: bold;
         }
+
         .info {
             margin: 2mm 0;
             border-top: 1px dashed #000;
             border-bottom: 1px dashed #000;
             padding: 1mm 0;
         }
+
         .info p {
             margin: 1px 0;
             font-size: 8px;
             font-weight: bold;
         }
+
         .items {
             width: 100%;
             margin: 2mm 0;
         }
+
         .items table {
             width: 100%;
             border-collapse: collapse;
             font-size: 8px;
             table-layout: fixed;
+            margin: 0;
+            padding: 0;
         }
+
         .items th {
             text-align: left;
             border-bottom: 1px solid #000;
             padding: 1px 0;
             font-weight: bold;
         }
+
         .items td {
             padding: 1px 0;
             font-weight: bold;
@@ -71,30 +85,42 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .items td:nth-child(1) { width: 38%; }
-        .items td:nth-child(2) { width: 10%; text-align: center; }
-        .items td:nth-child(3) { width: 22%; text-align: right; }
-        .items td:nth-child(4) { width: 30%; text-align: right; }
+
+        .items td:nth-child(1) { width: 25%; }
+        .items td:nth-child(2) { width: 6%; text-align: center; }
+        .items td:nth-child(3) { width: 25%; text-align: center; }
+        .items td:nth-child(4) { width: 44%; text-align: right; padding-right: 1mm; }
+
         .total {
             text-align: right;
             margin: 2mm 0;
             font-weight: bold;
             font-size: 9px;
-            padding-right: 1mm;
+            width: 100%;
+            white-space: nowrap;
+            padding-right: 0;
         }
+
         .footer {
             text-align: center;
             margin-top: 2mm;
             font-size: 8px;
             font-weight: bold;
+            word-wrap: break-word;
+            white-space: normal;
+            line-height: 1.2;
         }
+
         .separator {
             border-top: 1px dashed #000;
             margin: 1mm 0;
         }
+
         @media print {
-            body {
-                width: 55mm;
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 55mm !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -161,9 +187,24 @@
     </div>
 
     <script>
-        window.onload = function() {
-            window.print();
+        window.onload = function () {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            const iframeDoc = iframe.contentWindow.document;
+            iframeDoc.write(document.documentElement.outerHTML);
+            iframeDoc.close();
+
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 1000);
         }
     </script>
 </body>
 </html>
+
+

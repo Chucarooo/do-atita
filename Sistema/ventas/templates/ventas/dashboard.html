@@ -18,7 +18,7 @@
                             <label for="fecha_hasta" class="mr-2">Hasta:</label>
                             <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" value="{{ fecha_hasta|date:'Y-m-d' }}">
                         </div>
-                        <button type="submit" class="btn btn-primary">Filtrar</button>
+                            <button type="submit" class="btn btn-primary">Filtrar</button>
                     </form>
                 </div>
             </div>
@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         // Datos para el gráfico
         const ventasData = {{ ventas_diarias|safe }};
-        
+
         // Procesar las fechas y totales
         const labels = ventasData.map(item => {
             // Asegurarnos de que la fecha esté en formato ISO
@@ -179,8 +179,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const fecha = new Date(fechaStr);
             if (isNaN(fecha.getTime())) return '';
             
-            return fecha.toLocaleDateString('es-ES', {
-                day: '2-digit',
+            return fecha.toLocaleDateString('es-ES', { 
+                day: '2-digit', 
                 month: '2-digit',
                 year: 'numeric'
             });
@@ -197,38 +197,38 @@ document.addEventListener('DOMContentLoaded', function() {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
+        datasets: [{
                     label: 'Ventas Diarias',
                     data: data,
                     borderColor: 'rgb(75, 192, 192)',
                     tension: 0.1,
                     fill: false
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
                                 return '$' + value.toLocaleString('es-ES');
                             }
                         }
                     }
                 },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
                                 return '$' + context.raw.toLocaleString('es-ES', {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2
                                 });
-                            }
-                        }
                     }
                 }
+            }
+        }
             }
         });
     } catch (error) {
