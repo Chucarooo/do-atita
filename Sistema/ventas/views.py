@@ -5,9 +5,7 @@ from django.contrib import messages
 
 from django.views.generic import ListView
 from django.http import JsonResponse, HttpResponse
-from weasyprint.text.fonts import FontConfiguration
 from django.template.loader import get_template
-from weasyprint import HTML, CSS
 from django.conf import settings
 import os
 from django.db.models import Sum, Count, F, Avg, DecimalField
@@ -23,6 +21,13 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from django.urls import reverse
 from decimal import Decimal
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch, mm
+from io import BytesIO
 
 # Create your views here.
 
@@ -1799,7 +1804,13 @@ def imprimir_ticket_view(request, venta_id):
         }
         
         # Renderizar el template HTML
-        return render(request, 'ticket.html', context)
+        response = render(request, 'ticket.html', context)
+        
+        # Configurar los headers para que se imprima automáticamente
+        response['Content-Type'] = 'text/html; charset=utf-8'
+        response['Content-Disposition'] = 'inline'
+        
+        return response
         
     except Venta.DoesNotExist:
         return JsonResponse({

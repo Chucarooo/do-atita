@@ -4,4 +4,4 @@ django-bootstrap5
 django-widget-tweaks
 pillow
 django-humanize
-django-weasyprint
+reportlab==4.0.4

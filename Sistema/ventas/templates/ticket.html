@@ -187,22 +187,12 @@
     </div>
 
     <script>
-        window.onload = function () {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-
-            const iframeDoc = iframe.contentWindow.document;
-            iframeDoc.write(document.documentElement.outerHTML);
-            iframeDoc.close();
-
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-            }, 1000);
-        }
+        // Imprimir automáticamente cuando se carga la página
+        window.onload = function() {
+            window.print();
+            // Cerrar la ventana después de imprimir (opcional)
+            // setTimeout(function() { window.close(); }, 1000);
+        };
     </script>
 </body>
 </html>
